@@ -1,0 +1,135 @@
+.app-bar {
+  background: #161b22;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid #30363d;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.app-bar__container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 64px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.app-bar__logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  background: linear-gradient(135deg, #58a6ff 0%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: opacity 0.2s ease;
+}
+
+.app-bar__logo:hover {
+  opacity: 0.8;
+}
+
+.app-bar__nav {
+  display: flex;
+  align-items: center;
+}
+
+.app-bar__nav-list {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 24px;
+  align-items: center;
+}
+
+.app-bar__nav-item {
+  margin: 0;
+}
+
+.app-bar__nav-link {
+  color: #e6edf3;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 500;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.app-bar__nav-link:hover {
+  background-color: rgba(88, 166, 255, 0.1);
+  color: #58a6ff;
+}
+
+.app-bar__user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-bar__user-name {
+  font-size: 14px;
+  color: #8b949e;
+}
+
+.app-bar__logout-btn {
+  background: rgba(248, 81, 73, 0.2);
+  color: #f85149;
+  border: 1px solid rgba(248, 81, 73, 0.3);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.app-bar__logout-btn:hover {
+  background: rgba(248, 81, 73, 0.3);
+  border-color: #f85149;
+  transform: translateY(-1px);
+}
+
+.app-bar__auth {
+  display: flex;
+  align-items: center;
+}
+
+.app-bar__login-btn {
+  background: linear-gradient(135deg, #58a6ff 0%, #7c3aed 100%);
+  color: white;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.app-bar__login-btn:hover {
+  background: linear-gradient(135deg, #4493f8 0%, #6d28d9 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(88, 166, 255, 0.3);
+}
+
+@media (max-width: 768px) {
+  .app-bar__container {
+    padding: 0 16px;
+  }
+  
+  .app-bar__nav-list {
+    gap: 12px;
+  }
+  
+  .app-bar__nav-link {
+    font-size: 14px;
+    padding: 6px 8px;
+  }
+}

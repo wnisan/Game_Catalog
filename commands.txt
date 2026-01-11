@@ -1,0 +1,5 @@
+npm run lint         # Проверить код
+npm run lint:fix     # Исправить автоматически
+
+npm run format:check # проверка форматирования
+npm run format       # Отформатировать код

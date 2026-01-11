@@ -1,0 +1,279 @@
+.game-detail-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  background-color: #0d1117;
+  min-height: 100vh;
+}
+
+.game-detail-page__back-btn {
+  background: linear-gradient(135deg, #58a6ff 0%, #7c3aed 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 24px;
+  transition: all 0.2s ease;
+}
+
+.game-detail-page__back-btn:hover {
+  background: linear-gradient(135deg, #4493f8 0%, #6d28d9 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(88, 166, 255, 0.3);
+}
+
+.game-detail-page__content {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 32px;
+}
+
+.game-detail-page__cover {
+  width: 100%;
+  aspect-ratio: 3/4;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.game-detail-page__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.game-detail-page__no-cover {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #161b22 0%, #0d1117 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6e7681;
+  font-size: 14px;
+}
+
+.game-detail-page__info {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.game-detail-page__title {
+  font-size: 2.5rem;
+  margin: 0;
+  color: #e6edf3;
+  font-weight: 700;
+}
+
+.game-detail-page__rating {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.2rem;
+}
+
+.game-detail-page__rating-label {
+  font-weight: 600;
+  color: #8b949e;
+}
+
+.game-detail-page__rating-value {
+  font-weight: 700;
+  color: #58a6ff;
+  font-size: 1.5rem;
+}
+
+.game-detail-page__release-date,
+.game-detail-page__pegi {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1rem;
+}
+
+.game-detail-page__label {
+  font-weight: 600;
+  color: #8b949e;
+}
+
+.game-detail-page__pegi-value {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.game-detail-page__summary {
+  margin-top: 16px;
+}
+
+.game-detail-page__summary h2 {
+  font-size: 1.5rem;
+  margin-bottom: 12px;
+  color: #e6edf3;
+  font-weight: 700;
+}
+
+.game-detail-page__summary p {
+  line-height: 1.6;
+  color: #8b949e;
+  font-size: 1rem;
+}
+
+.game-detail-page__genres,
+.game-detail-page__platforms,
+.game-detail-page__engines {
+  margin-top: 16px;
+}
+
+.game-detail-page__genres h2,
+.game-detail-page__platforms h2,
+.game-detail-page__engines h2 {
+  font-size: 1.3rem;
+  margin-bottom: 12px;
+  color: #e6edf3;
+  font-weight: 700;
+}
+
+.game-detail-page__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.game-detail-page__tag {
+  background: rgba(88, 166, 255, 0.15);
+  color: #58a6ff;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: 1px solid rgba(88, 166, 255, 0.3);
+}
+
+.game-detail-page__error {
+  text-align: center;
+  padding: 48px;
+}
+
+.game-detail-page__error {
+  color: #8b949e;
+}
+
+.game-detail-page__error h2 {
+  color: #f85149;
+  margin-bottom: 24px;
+}
+
+.game-detail-page__external-links {
+  margin-top: 24px;
+}
+
+.game-detail-page__external-links h2 {
+  font-size: 1.3rem;
+  margin-bottom: 16px;
+  color: #e6edf3;
+  font-weight: 700;
+}
+
+.game-detail-page__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.game-detail-page__link {
+  display: inline-block;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.game-detail-page__link--steam {
+  background: linear-gradient(135deg, #1b2838 0%, #2a475e 100%);
+  color: #c7d5e0;
+  border-color: #66c0f4;
+}
+
+.game-detail-page__link--steam:hover {
+  background: linear-gradient(135deg, #2a475e 0%, #1b2838 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 192, 244, 0.3);
+}
+
+.game-detail-page__link--epic {
+  background: linear-gradient(135deg, #313131 0%, #1a1a1a 100%);
+  color: #ffffff;
+  border-color: #ffffff;
+}
+
+.game-detail-page__link--epic:hover {
+  background: linear-gradient(135deg, #1a1a1a 0%, #313131 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+}
+
+.game-detail-page__link--gog {
+  background: linear-gradient(135deg, #86328c 0%, #5a1f5e 100%);
+  color: #ffffff;
+  border-color: #b84cc1;
+}
+
+.game-detail-page__link--gog:hover {
+  background: linear-gradient(135deg, #5a1f5e 0%, #86328c 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(184, 76, 193, 0.3);
+}
+
+.game-detail-page__link--playstation {
+  background: linear-gradient(135deg, #003087 0%, #001f5c 100%);
+  color: #ffffff;
+  border-color: #0070f3;
+}
+
+.game-detail-page__link--playstation:hover {
+  background: linear-gradient(135deg, #001f5c 0%, #003087 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 112, 243, 0.3);
+}
+
+.game-detail-page__link--xbox {
+  background: linear-gradient(135deg, #107c10 0%, #0a5a0a 100%);
+  color: #ffffff;
+  border-color: #52c41a;
+}
+
+.game-detail-page__link--xbox:hover {
+  background: linear-gradient(135deg, #0a5a0a 0%, #107c10 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(82, 196, 26, 0.3);
+}
+
+@media (max-width: 768px) {
+  .game-detail-page__content {
+    grid-template-columns: 1fr;
+  }
+
+  .game-detail-page__title {
+    font-size: 2rem;
+  }
+
+  .game-detail-page__links {
+    flex-direction: column;
+  }
+
+  .game-detail-page__link {
+    width: 100%;
+    text-align: center;
+  }
+}
+
