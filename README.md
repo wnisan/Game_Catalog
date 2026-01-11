@@ -3,15 +3,16 @@
 Использует API IGDB для получения данных об играх.
 
 Технологии:
-- Frontend: React, TypeScript, Vite
-- Backend: Node.js, Express
-- База данных: SQLite
-- API: IGDB (Twitch)
+
+* Frontend: React, TypeScript, Vite
+* Backend: Node.js, Express
+* База данных: SQLite
+* API: IGDB (Twitch)
 
 Структура проекта:
 
 Ludex-Game-Catalog/
-├── backend/              # Backend 
+├── backend/              # Backend
 │   ├── server.js        # Основной файл сервера
 │   ├── auth.js          # Аутентификация
 │   ├── database.js      # Работа с БД
@@ -19,7 +20,7 @@ Ludex-Game-Catalog/
 │   │   ├── igdbService.js
 │   │   └── twitchAuth.js
 │   └── package.json
-├── frontend/            # Frontend 
+├── frontend/            # Frontend
 │   ├── src/
 │   │   ├── components/  # компоненты
 │   │   ├── pages/       # Страницы приложения
@@ -37,6 +38,4 @@ npm run dev
 
 cd ../frontend
 npm run dev
-
-
 
