@@ -57,11 +57,12 @@ const authenticateToken = async (req, res, next) => {
             try {
                 const { accessToken: newAccessToken, user: refreshedUser } = await refreshAccessToken(refreshToken);
 
+                const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER;
                 res.cookie('accessToken', newAccessToken, {
-                    httpOnly: true, // защита от XSS атак 
-                    secure: process.env.NODE_ENV === 'production', // только https
-                    sameSite: 'lax', // защита от CSRF атак
-                    maxAge: 15 * 60 * 1000 // 15 минут
+                    httpOnly: true,
+                    secure: isProduction,
+                    sameSite: isProduction ? 'none' : 'lax',
+                    maxAge: 15 * 60 * 1000
                 });
                 user = refreshedUser;
                 token = newAccessToken;
@@ -552,19 +553,19 @@ app.post('/auth/register', async (req, res) => {
 
         const { user, accessToken, refreshToken } = await registerUser(email, name, password);
 
-        // Устанавливаем токены в HttpOnly cookies
+        const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER;
         res.cookie('accessToken', accessToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax',
             maxAge: 15 * 60 * 1000,
             path: '/'
         });
 
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax',
             maxAge: 7 * 24 * 60 * 60 * 1000,
             path: '/'
         });
@@ -587,20 +588,20 @@ app.post('/auth/login', async (req, res) => {
 
         const { user, accessToken, refreshToken } = await loginUser(email, password);
 
-        // Устанавливаем токены в HttpOnly cookies
+        const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER;
         res.cookie('accessToken', accessToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 15 * 60 * 1000, // 15 минут
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax',
+            maxAge: 15 * 60 * 1000,
             path: '/'
         });
 
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 дней
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax',
+            maxAge: 7 * 24 * 60 * 60 * 1000,
             path: '/'
         });
 
@@ -623,12 +624,12 @@ app.post('/auth/refresh', async (req, res) => {
 
         const { accessToken, user } = await refreshAccessToken(refreshToken);
 
-        // Устанавливаем новый access token в cookie
+        const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER;
         res.cookie('accessToken', accessToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 15 * 60 * 1000, // 15 минут
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax',
+            maxAge: 15 * 60 * 1000,
             path: '/'
         });
 
@@ -807,20 +808,31 @@ app.get('/favorites/:gameId/check', authenticateToken, (req, res) => {
 // Google OAuth авторизация
 app.get('/auth/google', (req, res) => {
     const clientId = process.env.GOOGLE_CLIENT_ID;
-    const redirectUri = process.env.GOOGLE_REDIRECT_URI;
     const scope = process.env.GOOGLE_SCOPE || 'openid profile email';
 
-    if (!clientId || !redirectUri) {
+    if (!clientId) {
         console.error('Missing Google OAuth environment variables');
         return res.status(500).json({
             error: 'Google OAuth configuration is missing',
-            details: 'Please set GOOGLE_CLIENT_ID and GOOGLE_REDIRECT_URI environment variables'
+            details: 'Please set GOOGLE_CLIENT_ID environment variable'
         });
+    }
+
+    const origin = req.headers.origin || (req.headers.referer ? new URL(req.headers.referer).origin : null);
+    let redirectUri;
+    
+    if (origin) {
+        redirectUri = `${origin}/signin-callback`;
+    } else {
+        redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:5173/signin-callback';
     }
 
     console.log('Google OAuth config:', {
         hasClientId: !!clientId,
-        hasRedirectUri: !!redirectUri,
+        redirectUri,
+        origin,
+        headersOrigin: req.headers.origin,
+        headersReferer: req.headers.referer,
         scope
     });
 
@@ -831,20 +843,36 @@ app.get('/auth/google', (req, res) => {
 
 app.post('/auth/google/callback', async (req, res) => {
     try {
-        const { code } = req.body;
+        const { code, redirectUri: clientRedirectUri } = req.body;
         if (!code) {
             return res.status(400).json({ error: 'Authorization code is required' });
         }
 
         const clientId = process.env.GOOGLE_CLIENT_ID;
         const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-        const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+        
+        let redirectUri = clientRedirectUri;
+        if (!redirectUri) {
+            const origin = req.headers.origin || (req.headers.referer ? new URL(req.headers.referer).origin : null);
+            if (origin) {
+                redirectUri = `${origin}/signin-callback`;
+            } else {
+                redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:5173/signin-callback';
+            }
+        }
+        
+        console.log('Google OAuth callback:', {
+            hasCode: !!code,
+            redirectUri,
+            clientRedirectUri,
+            headersOrigin: req.headers.origin,
+            headersReferer: req.headers.referer
+        });
 
-        if (!clientId || !clientSecret || !redirectUri) {
+        if (!clientId || !clientSecret) {
             console.error('Missing Google OAuth environment variables:', {
                 hasClientId: !!clientId,
-                hasClientSecret: !!clientSecret,
-                hasRedirectUri: !!redirectUri
+                hasClientSecret: !!clientSecret
             });
             return res.status(500).json({ error: 'Google OAuth configuration is missing' });
         }
@@ -943,18 +971,19 @@ app.post('/auth/google/callback', async (req, res) => {
         expiresAt.setDate(expiresAt.getDate() + 7);
         createRefreshToken(user.id, refreshToken, expiresAt.toISOString());
 
+        const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER;
         res.cookie('accessToken', accessToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax',
             maxAge: 15 * 60 * 1000,
             path: '/'
         });
 
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax',
             maxAge: 7 * 24 * 60 * 60 * 1000,
             path: '/'
         });

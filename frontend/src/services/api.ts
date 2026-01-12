@@ -386,7 +386,8 @@ export const getGoogleAuthUrl = async (): Promise<string> => {
 };
 
 export const googleAuthCallback = async (code: string) => {
-    const response = await api.post('/auth/google/callback', { code }, {
+    const redirectUri = `${window.location.origin}/signin-callback`;
+    const response = await api.post('/auth/google/callback', { code, redirectUri }, {
         withCredentials: true
     });
     return response.data;
