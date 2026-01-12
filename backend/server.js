@@ -15,9 +15,20 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 // Настройка CORS для работы с cookies
+const allowedOrigins = [
+    'http://localhost:5173',
+    'https://game-catalog-1aq.pages.dev'
+];
+
 app.use(cors({
-    origin: 'http://localhost:5173',
-    credentials: true // Разрешаем отправку cookies
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true
 }));
 app.use(express.json());
 app.use(cookieParser());

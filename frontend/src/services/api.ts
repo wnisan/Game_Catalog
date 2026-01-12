@@ -1,10 +1,11 @@
 import axios from 'axios';
 
-//?  401 все еще в консоли
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 export const api = axios.create({
-    baseURL: 'http://localhost:3001',
+    baseURL: API_URL,
     timeout: 10000,
-    withCredentials: true // Отправляем cookies с каждым запросом
+    withCredentials: true
 });
 
 if (typeof window !== 'undefined') {
@@ -122,8 +123,8 @@ api.interceptors.response.use(
             isRefreshing = true;
 
             try {
-                // обновление токена
-                await axios.post('http://localhost:3001/auth/refresh', {}, {
+                const refreshUrl = `${API_URL}/auth/refresh`;
+                await axios.post(refreshUrl, {}, {
                     withCredentials: true
                 });
 
