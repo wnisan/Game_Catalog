@@ -289,6 +289,117 @@
   }
 }
 
+.user-page__form-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-top: 24px;
+}
+
+.user-page__delete-account-btn {
+  background: linear-gradient(135deg, #f85149 0%, #da3633 100%);
+  color: white;
+  border: none;
+  padding: 14px 28px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(248, 81, 73, 0.3);
+}
+
+.user-page__delete-account-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #da3633 0%, #f85149 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(248, 81, 73, 0.4);
+}
+
+.user-page__delete-account-btn:disabled {
+  background: #30363d;
+  color: #6e7681;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.user-page__delete-section {
+  margin-top: 32px;
+  padding: 24px;
+  background: rgba(248, 81, 73, 0.1);
+  border-radius: 12px;
+  border: 1px solid rgba(248, 81, 73, 0.3);
+}
+
+.user-page__delete-title {
+  margin: 0 0 16px 0;
+  color: #f85149;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.user-page__delete-description {
+  margin: 0 0 24px 0;
+  color: #8b949e;
+  font-size: 0.95rem;
+}
+
+.user-page__delete-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.user-page__cancel-delete-btn {
+  flex: 1;
+  background: #30363d;
+  color: #e6edf3;
+  border: 1px solid #484f58;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.user-page__cancel-delete-btn:hover:not(:disabled) {
+  background: #484f58;
+  border-color: #6e7681;
+}
+
+.user-page__cancel-delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.user-page__delete-btn {
+  flex: 1;
+  background: linear-gradient(135deg, #f85149 0%, #da3633 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.user-page__delete-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #da3633 0%, #f85149 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(248, 81, 73, 0.4);
+}
+
+.user-page__delete-btn:disabled {
+  background: #30363d;
+  color: #6e7681;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
 
 
 

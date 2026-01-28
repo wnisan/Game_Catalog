@@ -8,6 +8,31 @@ class IGDBService {
 
     constructor() {
         this.baseURL = 'https://api.igdb.com/v4';
+        this.gameCache = new Map();
+    }
+
+    getCachedGame(cacheKey) {
+        const item = this.gameCache.get(cacheKey);
+        if (!item) return null;
+        if (item.expiresAt <= Date.now()) {
+            this.gameCache.delete(cacheKey);
+            return null;
+        }
+        return item.value;
+    }
+
+    setCachedGame(cacheKey, value, ttlMs = 10 * 60 * 1000) {
+        this.gameCache.set(cacheKey, { value, expiresAt: Date.now() + ttlMs });
+    }
+
+    async getGamesByIds(ids) {
+        const uniqueIds = Array.from(new Set(ids.map(Number).filter(n => !Number.isNaN(n))));
+        if (uniqueIds.length === 0) return [];
+
+        const headers = await twitchAuth.getAuthHeaders();
+        const query = `fields id,name,slug,first_release_date,genres.name,platforms.name,game_engines.name,videos.video_id,cover.image_id,rating; where id = (${uniqueIds.join(',')}); limit ${Math.min(uniqueIds.length, 500)};`;
+        const response = await axios.post(`${this.baseURL}/games`, query, { headers, timeout: 10000 });
+        return (response.data || []).map(g => this.normalizeGame(g));
     }
 
     async getGamesCount({
@@ -18,48 +43,18 @@ class IGDBService {
         platforms,
         engines,
         releaseDateMin,
-        releaseDateMax,
-        pegi
+        releaseDateMax
     }) {
-            const headers = await twitchAuth.getAuthHeaders();
+        const headers = await twitchAuth.getAuthHeaders();
         const where = [];
 
-        // Фильтрация по рейтингу с учетом округления
-        if (ratingMin !== undefined && ratingMin !== null && !isNaN(Number(ratingMin))) {
-            const minRating = Number(ratingMin);
-
-            const minValue = minRating > 0 ? Math.max(0, Math.floor(minRating - 0.5)) : 0;
-            where.push(`rating >= ${minValue}`);
-            console.log(`Rating min filter (count): requesting rating >= ${minValue} (for minRating=${minRating})`);
-        }
-        if (ratingMax !== undefined && ratingMax !== null && !isNaN(Number(ratingMax))) {
-            const maxRating = Number(ratingMax);
-            let maxValue;
-            if (maxRating >= 100) {
-                maxValue = 100;
-            } else if (maxRating >= 22 && maxRating <= 91) {
-                maxValue = Math.min(100, maxRating + 15);
-            } else if (maxRating < 22) {
-                // Для низкого диапазона (0-21) расширяем больше, чтобы захватить игры с округлением
-                maxValue = Math.min(100, maxRating + 5);
-            } else {
-                // Для высокого диапазона (92-99) используем меньшее расширение
-                maxValue = Math.min(100, maxRating + 2);
-            }
-            where.push(`rating <= ${maxValue}`);
-            console.log(`Rating max filter (count): requesting rating <= ${maxValue} (for maxRating=${maxRating})`);
-        }
+        where.push(...this.buildRatingWhere(ratingMin, ratingMax, true));
 
         const addFilterCondition = (filterValue, fieldName) => {
             if (!filterValue) return;
             const ids = filterValue.split(',').map(Number).filter(n => !isNaN(n));
             if (ids.length > 0) {
-                if (ids.length === 1) {
-                    where.push(`${fieldName} = (${ids[0]})`);
-                } else {
-                    const conditions = ids.map(id => `${fieldName} = (${id})`);
-                    where.push(conditions.join(' & '));
-                }
+                where.push(`${fieldName} = (${ids.join(',')})`);
             }
         };
 
@@ -90,27 +85,6 @@ class IGDBService {
             where.push(`name ~ "${escapedSearch}"*`);
         }
 
-        // PEGI фильтрация: category = 2, rating: 1=3+, 2=7+, 3=12+, 4=16+, 5=18+
-        if (pegi) {
-            const pegiValues = pegi.split(',').map(Number).filter(n => !isNaN(n));
-            if (pegiValues.length > 0) {
-                const pegiMap = { 3: 1, 7: 2, 12: 3, 16: 4, 18: 5 };
-                const apiRatings = pegiValues
-                    .map(v => pegiMap[v])
-                    .filter(v => v !== undefined);
-
-                if (apiRatings.length > 0) {
-                  
-                    const ratingQuery = apiRatings.length === 1 
-                        ? apiRatings[0] 
-                        : `(${apiRatings.join(',')})`;
-
-                    where.push(`age_ratings.category = 2 & age_ratings.rating = ${ratingQuery}`);
-                    console.log(`PEGI filter (count): requesting category=2, ratings=${apiRatings.join(',')} (for user values: ${pegiValues.join(',')})`);
-                }
-            }
-        }
-
         let query = '';
         if (where.length > 0) {
             query = `where ${where.join(' & ')};`;
@@ -123,7 +97,7 @@ class IGDBService {
                 { headers }
             );
             const count = response.data.count || 0;
-            if (genres || platforms || engines || pegi) {
+            if (genres || platforms || engines) {
                 console.log(`getGamesCount result: ${count} games`);
             }
             return count;
@@ -145,75 +119,24 @@ class IGDBService {
         engines,
         releaseDateMin,
         releaseDateMax,
-        pegi,
         sortBy
     }) {
         const headers = await twitchAuth.getAuthHeaders();
 
         const where = [];
-        if (ratingMin !== undefined && ratingMin !== null && !isNaN(Number(ratingMin))) {
-
-            const minRating = Number(ratingMin);
-            const minValue = minRating > 0 ? Math.max(0, Math.floor(minRating - 0.5)) : 0;
-            where.push(`rating >= ${minValue}`);
-        }
-        if (ratingMax !== undefined && ratingMax !== null && !isNaN(Number(ratingMax))) {
-            const maxRating = Number(ratingMax);
-            let maxValue;
-            if (maxRating >= 100) {
-                maxValue = 100;
-            } else if (maxRating >= 22 && maxRating <= 91) {
-
-                maxValue = Math.min(100, maxRating + 10);
-            } else if (maxRating < 22) {
-                // Для низкого диапазона (0-21) расширяем больше, чтобы захватить игры с округлением
-                maxValue = Math.min(100, maxRating + 5);
-            } else {
-                // Для высокого диапазона (92-99) используем меньшее расширение
-                maxValue = Math.min(100, maxRating + 2);
-            }
-            where.push(`rating <= ${maxValue}`);
-            console.log(`Rating max filter: requesting rating <= ${maxValue} (for maxRating=${maxRating})`);
-        }
+        where.push(...this.buildRatingWhere(ratingMin, ratingMax, false));
 
         const addFilterCondition = (filterValue, fieldName) => {
             if (!filterValue) return;
             const ids = filterValue.split(',').map(Number).filter(n => !isNaN(n));
             if (ids.length > 0) {
-                if (ids.length === 1) {
-                    where.push(`${fieldName} = (${ids[0]})`);
-                } else {
-                    const conditions = ids.map(id => `${fieldName} = (${id})`);
-                    where.push(conditions.join(' & '));
-                }
+                where.push(`${fieldName} = (${ids.join(',')})`);
             }
         };
 
         addFilterCondition(genres, 'genres');
         addFilterCondition(platforms, 'platforms');
         addFilterCondition(engines, 'game_engines');
-
-        // PEGI фильтрация: category = 2, rating: 1=3+, 2=7+, 3=12+, 4=16+, 5=18+
-        if (pegi) {
-            const pegiValues = pegi.split(',').map(Number).filter(n => !isNaN(n));
-            if (pegiValues.length > 0) {
-                //пользователь выбирает 3, 7, 12, 16, 18 -> API использует 1, 2, 3, 4, 5
-                const pegiMap = { 3: 1, 7: 2, 12: 3, 16: 4, 18: 5 };
-                const apiRatings = pegiValues
-                    .map(v => pegiMap[v])
-                    .filter(v => v !== undefined);
-
-                if (apiRatings.length > 0) {
-                   
-                    const ratingQuery = apiRatings.length === 1 
-                        ? apiRatings[0] 
-                        : `(${apiRatings.join(',')})`;
-
-                    where.push(`age_ratings.category = 2 & age_ratings.rating = ${ratingQuery}`);
-                    console.log(`PEGI filter: requesting category=2, ratings=${apiRatings.join(',')} (for user values: ${pegiValues.join(',')})`);
-                }
-            }
-        }
 
         const dateConditions = [];
         if (releaseDateMin) {
@@ -240,12 +163,11 @@ class IGDBService {
             'release-asc': 'first_release_date asc'
         };
 
-        let query = `fields name, rating, summary, cover.image_id, genres.name, platforms.name, game_engines.name, first_release_date, age_ratings, websites.url, websites.category;`;
+        let query = `fields id,name,slug,summary,storyline,status,game_status,game_type,created_at,updated_at,checksum,url,external_games,first_release_date,release_dates,genres.name,platforms.name,game_engines.name,game_modes.name,themes.name,keywords.name,tags,player_perspectives.name,hypes,alternative_names.name,artworks.image_id,videos.video_id,cover.image_id,cover.url,rating ;`;
 
         if (search && search.trim()) {
             const searchTerm = search.trim();
             const escapedSearch = searchTerm.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-            // Используем where name ~ "text"* для поиска по начальным буквам/части слова
             where.push(`name ~ "${escapedSearch}"*`);
             console.log(`Using where name ~ filter for search: "${searchTerm}"`);
         }
@@ -268,22 +190,7 @@ class IGDBService {
         query += ` limit ${actualLimit};`;
         query += ` offset ${offset};`;
 
-        if (pegi) {
-            const pegiConditions = where.filter(w => w.includes('age_ratings'));
-            console.log('PEGI where conditions:', pegiConditions);
-        }
-        console.log('IGDB Query:', query);
-        const ratingFilters = where.filter(w => w.includes('rating'));
-        console.log('Rating filter:', {
-            ratingMin,
-            ratingMax,
-            whereRating: ratingFilters,
-            actualLimit,
-            offset
-        });
-
         const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
         const maxRetries = 3;
         let lastError = null;
 
@@ -291,201 +198,14 @@ class IGDBService {
             try {
                 if (attempt > 0) {
                     const delayMs = 1000 * Math.pow(2, attempt - 1);
-                    console.log(`IGDB API rate limit. Retrying in ${delayMs}ms... (attempt ${attempt}/${maxRetries})`);
                     await delay(delayMs);
                 }
 
-        const response = await axios.post(
-            `${this.baseURL}/games`,
-            query,
-            { headers }
-        );
-
-                console.log(`IGDB API returned ${response.data.length} games`);
-                console.log(`Query sent to IGDB:`, query.substring(0, 500));
-                
-                if (response.data.length > 0) {
-                    console.log('=== RAW IGDB RESPONSE (first 2 games) ===');
-                    response.data.slice(0, 2).forEach((game, idx) => {
-                        console.log(`Game ${idx + 1} (ID: ${game.id}):`, JSON.stringify({
-                            id: game.id,
-                            name: game.name,
-                            age_ratings: game.age_ratings,
-                            age_ratings_type: typeof game.age_ratings,
-                            age_ratings_isArray: Array.isArray(game.age_ratings),
-                            age_ratings_length: Array.isArray(game.age_ratings) ? game.age_ratings.length : 'N/A'
-                        }, null, 2));
-                    });
-          
-                }
-
-                if (response.data.length > 0) {
-
-                    const sampleGames = response.data.slice(0, 3);
-                    sampleGames.forEach((game, index) => {
-                        console.log(`Game ${index + 1} (ID: ${game.id}, Name: ${game.name}):`);
-                        console.log(`  - age_ratings exists: ${!!game.age_ratings}`);
-                        if (game.age_ratings) {
-                            console.log(`  - age_ratings type: ${typeof game.age_ratings}, isArray: ${Array.isArray(game.age_ratings)}`);
-                            if (Array.isArray(game.age_ratings)) {
-                                console.log(`  - age_ratings length: ${game.age_ratings.length}`);
-                                if (game.age_ratings.length > 0) {
-                                    console.log(`  - first item:`, JSON.stringify(game.age_ratings[0]).substring(0, 200));
-                                }
-                            } else {
-                                console.log(`  - age_ratings object:`, JSON.stringify(game.age_ratings).substring(0, 200));
-                            }
-                        } else {
-                            console.log(`  - age_ratings is null/undefined`);
-                        }
-                    });
-                    
-                    const gamesWithAgeRatings = response.data.filter(g => g.age_ratings && 
-                        (Array.isArray(g.age_ratings) ? g.age_ratings.length > 0 : true));
-                    console.log(`Summary: Games with age_ratings: ${gamesWithAgeRatings.length} out of ${response.data.length}`);
-                    
-                  
-                }
-
-                let needsAgeRatingsExpansion = false;
-            
-                const hasAnyAgeRatings = response.data.some(game => 
-                    game.age_ratings && 
-                    (Array.isArray(game.age_ratings) ? game.age_ratings.length > 0 : true)
+                const response = await axios.post(
+                    `${this.baseURL}/games`,
+                    query,
+                    { headers, timeout: 10000 }
                 );
-                
-                if (hasAnyAgeRatings) {
-               
-                    for (const game of response.data) {
-                        if (game.age_ratings) {
-                            if (Array.isArray(game.age_ratings) && game.age_ratings.length > 0) {
-                                const firstRating = game.age_ratings[0];
-               
-                                if (typeof firstRating === 'number' || 
-                                    (firstRating && typeof firstRating === 'object' && firstRating.id !== undefined && firstRating.category === undefined)) {
-                                    needsAgeRatingsExpansion = true;
-                                    break;
-                                }
-                            } else if (typeof game.age_ratings === 'object' && !Array.isArray(game.age_ratings)) {
-                                if (game.age_ratings.id !== undefined && game.age_ratings.category === undefined) {
-                                    needsAgeRatingsExpansion = true;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                console.log(`Age ratings expansion needed: ${needsAgeRatingsExpansion}, has any age_ratings: ${hasAnyAgeRatings}`);
-
-                let ageRatingsMap = new Map();
-     
-                if (needsAgeRatingsExpansion || hasAnyAgeRatings) {
-                    const ageRatingIds = new Set();
-                    response.data.forEach(game => {
-                        if (game.age_ratings) {
-                            if (Array.isArray(game.age_ratings)) {
-                                game.age_ratings.forEach(ar => {
-                                    const id = typeof ar === 'number' ? ar : (ar && ar.id ? ar.id : null);
-                                    if (id) {
-                                        ageRatingIds.add(id);
-                                    }
-                                });
-                            } else if (typeof game.age_ratings === 'object' && game.age_ratings.id !== undefined) {
-                
-                                ageRatingIds.add(game.age_ratings.id);
-                            }
-                        }
-                    });
-
-                    if (ageRatingIds.size > 0) {
-                        try {
-                            const ageRatingIdsArray = Array.from(ageRatingIds);
-                            for (let i = 0; i < ageRatingIdsArray.length; i += 500) {
-                                const batch = ageRatingIdsArray.slice(i, i + 500);
-                                const ageRatingsQuery = `fields id, category, rating; where id = (${batch.join(',')}); limit 500;`;
-                                const ageRatingsResponse = await axios.post(
-                                    `${this.baseURL}/age_ratings`,
-                                    ageRatingsQuery,
-                                    { headers }
-                                );
-                                ageRatingsResponse.data.forEach(ar => {
-                                    ageRatingsMap.set(ar.id, ar);
-                                });
-                            }
-                            console.log(`Fetched ${ageRatingsMap.size} age_ratings details for expansion`);
-
-                            if (ageRatingsMap.size > 0) {
-                                const sampleRatings = Array.from(ageRatingsMap.values()).slice(0, 5);
-                                console.log('Sample expanded age_ratings:', sampleRatings);
-                            }
-                        } catch (error) {
-                            console.error('Error fetching age_ratings details:', error.response?.data || error.message);
-                        }
-                    }
-
-                    let expandedCount = 0;
-                    let alreadyExpandedCount = 0;
-                    response.data.forEach(game => {
-                        if (game.age_ratings) {
-                            if (Array.isArray(game.age_ratings)) {
-                                if (game.age_ratings.length > 0) {
-                            
-                                    const firstRating = game.age_ratings[0];
-                                    const needsExpansion = typeof firstRating === 'number' || 
-                                        (firstRating && firstRating.id !== undefined && firstRating.category === undefined);
-                                    
-                                    if (ageRatingsMap.size > 0) {
-                                        const expandedRatings = [];
-                                        game.age_ratings.forEach(ar => {
-                                            const id = typeof ar === 'number' ? ar : (ar && ar.id ? ar.id : null);
-                                            if (id && ageRatingsMap.has(id)) {
-                                                expandedCount++;
-                                                expandedRatings.push(ageRatingsMap.get(id));
-                                            }
-                                        });
-                                        game.age_ratings = expandedRatings;
-                                        if (game.age_ratings.length > 0) {
-                                            console.log(`Game ${game.id} (${game.name}): expanded ${game.age_ratings.length} age_ratings`);
-                                        } else {
-                                            console.warn(`Game ${game.id} (${game.name}): age_ratings IDs found but not in expansion map`);
-                                        }
-                                    } else {
-                                        console.warn(`Game ${game.id} (${game.name}): age_ratings found but expansion map is empty`);
-                                        game.age_ratings = [];
-                                    }
-                                } else {
-             
-                                    game.age_ratings = [];
-                                }
-                            } else if (typeof game.age_ratings === 'object' && !Array.isArray(game.age_ratings)) {
-            
-                                if (game.age_ratings.category !== undefined) {
-                      
-                                    alreadyExpandedCount++;
-                                    game.age_ratings = [game.age_ratings];
-                                } else if (game.age_ratings.id !== undefined && ageRatingsMap.size > 0) {
-                                    // Нужно расширение
-                                    const id = game.age_ratings.id;
-                                    if (ageRatingsMap.has(id)) {
-                                        expandedCount++;
-                                        game.age_ratings = [ageRatingsMap.get(id)];
-                                        console.log(`Game ${game.id} age_ratings (single object) expanded successfully`);
-                                    } else {
-                                        game.age_ratings = [];
-                                    }
-                                } else {
-                                    game.age_ratings = [];
-                                }
-                            }
-                        } else {
-            
-                            game.age_ratings = [];
-                        }
-                    });
-                    console.log(`Expanded ${expandedCount} age_ratings IDs to full objects, ${alreadyExpandedCount} already had category`);
-                }
-
                 let websitesMap = new Map();
                 const websiteIds = new Set();
                 response.data.forEach(game => {
@@ -554,7 +274,6 @@ class IGDBService {
                 const hasRatingFilterInQuery = where.some(w => w.includes('rating'));
                 const wasSortChanged = hasRatingFilterInQuery && sortBy && sortBy.startsWith('rating');
 
-             
                 if (games.length > 0 && (ratingMin !== undefined || ratingMax !== undefined)) {
                     const sampleRatings = games.slice(0, 10).map(g => ({
                         name: g.name,
@@ -634,24 +353,22 @@ class IGDBService {
                 const applyClientSideFilter = (filterValue, gameField) => {
                     if (!filterValue) return;
                     const ids = filterValue.split(',').map(Number).filter(n => !isNaN(n));
-                    if (ids.length > 1) {
-                        games = games.filter(game => {
-                            if (!game[gameField] || game[gameField].length === 0) return false;
-                            const gameIds = game[gameField].map(item => item.id);
-                            return ids.every(id => gameIds.includes(id));
-                        });
-                    }
+                    if (ids.length === 0) return;
+                    games = games.filter(game => {
+                        if (!game[gameField] || game[gameField].length === 0) return false;
+                        const gameIds = game[gameField].map(item => item.id);
+                        return ids.some(id => gameIds.includes(id));
+                    });
                 };
 
                 applyClientSideFilter(genres, 'genres');
                 applyClientSideFilter(platforms, 'platforms');
-                applyClientSideFilter(engines, 'engines');
 
                 return games;
             } catch (error) {
                 lastError = error;
 
-                if (error.response?.status === 429 && attempt < maxRetries) {
+                if ((error.response?.status === 429 || error.code === 'ECONNRESET') && attempt < maxRetries) {
                     continue;
                 }
 
@@ -663,70 +380,27 @@ class IGDBService {
 
         throw lastError;
     }
-
     async getGameById(id) {
         const headers = await twitchAuth.getAuthHeaders();
-        
-        const query = `fields name, rating, summary, cover.image_id, genres.name, platforms.name, game_engines.name, first_release_date, age_ratings, websites.url, websites.category; where id = ${id};`;
-        
+        const cacheKey = `id:${id}`;
+        const cached = this.getCachedGame(cacheKey);
+        if (cached) return cached;
+
+        const query = `fields id,name,slug,summary,storyline,status,game_status,game_type,created_at,updated_at,checksum,url,external_games,first_release_date,release_dates,genres.name,platforms.name,game_engines.name,game_modes.name,themes.name,keywords.name,tags,player_perspectives.name,hypes,alternative_names.name,artworks.image_id,videos.video_id,cover.image_id,cover.url,screenshots.image_id,websites.url,websites.category,similar_games,language_supports.language.name,language_supports.language_support_type,rating; where id = ${id};`;
+
         try {
             const response = await axios.post(
                 `${this.baseURL}/games`,
                 query,
                 { headers }
             );
-            
+
             if (response.data.length === 0) {
                 throw new Error('Game not found');
             }
-            
+
             const game = response.data[0];
-            
-            if (game.age_ratings) {
-                const ageRatingIds = new Set();
-                
-                if (Array.isArray(game.age_ratings)) {
-                    game.age_ratings.forEach(ar => {
-                        const id = typeof ar === 'number' ? ar : (ar && ar.id ? ar.id : null);
-                        if (id) ageRatingIds.add(id);
-                    });
-                } else if (game.age_ratings.id !== undefined) {
-                    ageRatingIds.add(game.age_ratings.id);
-                }
-                
-                if (ageRatingIds.size > 0) {
-                    try {
-                        const ageRatingsQuery = `fields id, category, rating; where id = (${Array.from(ageRatingIds).join(',')});`;
-                        const ageRatingsResponse = await axios.post(
-                            `${this.baseURL}/age_ratings`,
-                            ageRatingsQuery,
-                            { headers }
-                        );
-                        
-                        const ageRatingsMap = new Map();
-                        ageRatingsResponse.data.forEach(ar => {
-                            ageRatingsMap.set(ar.id, ar);
-                        });
-                        
-                        if (Array.isArray(game.age_ratings)) {
-                            game.age_ratings = game.age_ratings.map(ar => {
-                                const id = typeof ar === 'number' ? ar : (ar && ar.id ? ar.id : null);
-                                return ageRatingsMap.get(id) || ar;
-                            }).filter(ar => ar && typeof ar === 'object');
-                        } else if (game.age_ratings.id !== undefined) {
-                            const expanded = ageRatingsMap.get(game.age_ratings.id);
-                            if (expanded) {
-                                game.age_ratings = [expanded];
-                            } else {
-                                game.age_ratings = [];
-                            }
-                        }
-                    } catch (error) {
-                        console.error('Error expanding age_ratings:', error.message);
-                    }
-                }
-            }
-            
+
             if (game.websites) {
                 if (Array.isArray(game.websites)) {
                     const needsExpansion = game.websites.some(w => {
@@ -734,14 +408,14 @@ class IGDBService {
                         if (w && w.id && !w.category) return true;
                         return false;
                     });
-                    
+
                     if (needsExpansion) {
                         const websiteIds = new Set();
                         game.websites.forEach(w => {
                             const id = typeof w === 'number' ? w : (w && w.id ? w.id : null);
                             if (id) websiteIds.add(id);
                         });
-                        
+
                         if (websiteIds.size > 0) {
                             try {
                                 const websitesQuery = `fields id, url, category; where id = (${Array.from(websiteIds).join(',')});`;
@@ -750,12 +424,12 @@ class IGDBService {
                                     websitesQuery,
                                     { headers }
                                 );
-                                
+
                                 const websitesMap = new Map();
                                 websitesResponse.data.forEach(w => {
                                     websitesMap.set(w.id, w);
                                 });
-                                
+
                                 const expandedWebsites = [];
                                 game.websites.forEach(w => {
                                     const id = typeof w === 'number' ? w : (w && w.id ? w.id : null);
@@ -799,10 +473,192 @@ class IGDBService {
                     }
                 }
             }
-            
-            return this.normalizeGame(game);
+
+            if (game.screenshots && Array.isArray(game.screenshots)) {
+                const screenshotIds = new Set();
+                game.screenshots.forEach(s => {
+                    const id = typeof s === 'number' ? s : (s && s.image_id ? s.image_id : (s && s.id ? s.id : null));
+                    if (id) screenshotIds.add(id);
+                });
+
+                if (screenshotIds.size > 0) {
+                    game.screenshots = Array.from(screenshotIds).map(id => ({
+                        image_id: typeof id === 'number' ? id : (id && id.image_id ? id.image_id : id),
+                        url: `https://images.igdb.com/igdb/image/upload/t_screenshot_big/${typeof id === 'number' ? id : (id && id.image_id ? id.image_id : id)}.jpg`
+                    }));
+                }
+            }
+
+            if (game.similar_games && Array.isArray(game.similar_games)) {
+                const similarGameIds = game.similar_games.map(id => typeof id === 'number' ? id : (id && id.id ? id.id : id)).filter(Boolean);
+                if (similarGameIds.length > 0) {
+                    try {
+                        const similarGamesQuery = `fields id,name,slug,cover.image_id,rating; where id = (${similarGameIds.slice(0, 10).join(',')});`;
+                        const similarGamesResponse = await axios.post(
+                            `${this.baseURL}/games`,
+                            similarGamesQuery,
+                            { headers }
+                        );
+                        game.similar_games = similarGamesResponse.data.map(g => ({
+                            id: g.id,
+                            name: g.name,
+                            slug: g.slug,
+                            cover: g.cover ? { url: `https://images.igdb.com/igdb/image/upload/t_cover_big/${g.cover.image_id}.jpg` } : null,
+                            rating: g.rating
+                        }));
+                    } catch (error) {
+                        console.error('Error fetching similar games:', error.message);
+                        game.similar_games = [];
+                    }
+                }
+            }
+
+            const normalized = this.normalizeGame(game);
+            this.setCachedGame(cacheKey, normalized);
+            return normalized;
         } catch (error) {
             console.error('Error getting game by ID:', error.response?.data || error.message);
+            throw error;
+        }
+    }
+    async getGameBySlug(slug) {
+        const headers = await twitchAuth.getAuthHeaders();
+        const cacheKey = `slug:${slug}`;
+        const cached = this.getCachedGame(cacheKey);
+        if (cached) return cached;
+
+        const query = `fields id,name,slug,summary,storyline,status,game_status,game_type,created_at,updated_at,checksum,url,external_games,first_release_date,release_dates,genres.name,platforms.name,game_engines.name,game_modes.name,themes.name,keywords.name,tags,player_perspectives.name,hypes,alternative_names.name,artworks.image_id,videos.video_id,cover.image_id,cover.url,screenshots.image_id,websites.url,websites.category,similar_games,language_supports.language.name,language_supports.language_support_type,rating; where slug = "${slug}";`;
+
+        try {
+            const response = await axios.post(
+                `${this.baseURL}/games`,
+                query,
+                { headers }
+            );
+
+            if (response.data.length === 0) {
+                throw new Error('Game not found');
+            }
+
+            const game = response.data[0];
+
+            if (game.websites) {
+                if (Array.isArray(game.websites)) {
+                    const needsExpansion = game.websites.some(w => {
+                        if (typeof w === 'number') return true;
+                        if (w && w.id && !w.category) return true;
+                        return false;
+                    });
+
+                    if (needsExpansion) {
+                        const websiteIds = new Set();
+                        game.websites.forEach(w => {
+                            const id = typeof w === 'number' ? w : (w && w.id ? w.id : null);
+                            if (id) websiteIds.add(id);
+                        });
+
+                        if (websiteIds.size > 0) {
+                            try {
+                                const websitesQuery = `fields id, url, category; where id = (${Array.from(websiteIds).join(',')});`;
+                                const websitesResponse = await axios.post(
+                                    `${this.baseURL}/websites`,
+                                    websitesQuery,
+                                    { headers }
+                                );
+
+                                const websitesMap = new Map();
+                                websitesResponse.data.forEach(w => {
+                                    websitesMap.set(w.id, w);
+                                });
+
+                                const expandedWebsites = [];
+                                game.websites.forEach(w => {
+                                    const id = typeof w === 'number' ? w : (w && w.id ? w.id : null);
+                                    if (id && websitesMap.has(id)) {
+                                        expandedWebsites.push(websitesMap.get(id));
+                                    } else if (w && typeof w === 'object' && w.url) {
+                                        expandedWebsites.push(w);
+                                    }
+                                });
+                                game.websites = expandedWebsites;
+                            } catch (error) {
+                                console.error('Error expanding websites:', error.message);
+                                game.websites = game.websites.filter(w => w && typeof w === 'object' && w.url);
+                            }
+                        }
+                    } else {
+                        game.websites = game.websites.filter(w => w && typeof w === 'object' && w.url);
+                    }
+                } else if (typeof game.websites === 'object') {
+                    if (!game.websites.category && game.websites.id) {
+                        try {
+                            const websitesQuery = `fields id, url, category; where id = ${game.websites.id};`;
+                            const websitesResponse = await axios.post(
+                                `${this.baseURL}/websites`,
+                                websitesQuery,
+                                { headers }
+                            );
+                            if (websitesResponse.data.length > 0) {
+                                game.websites = [websitesResponse.data[0]];
+                            } else {
+                                game.websites = [];
+                            }
+                        } catch (error) {
+                            console.error('Error expanding website:', error.message);
+                            game.websites = [];
+                        }
+                    } else if (game.websites.url && game.websites.category) {
+                        game.websites = [game.websites];
+                    } else {
+                        game.websites = [];
+                    }
+                }
+            }
+
+            if (game.screenshots && Array.isArray(game.screenshots)) {
+                const screenshotIds = new Set();
+                game.screenshots.forEach(s => {
+                    const id = typeof s === 'number' ? s : (s && s.image_id ? s.image_id : (s && s.id ? s.id : null));
+                    if (id) screenshotIds.add(id);
+                });
+
+                if (screenshotIds.size > 0) {
+                    game.screenshots = Array.from(screenshotIds).map(id => ({
+                        image_id: typeof id === 'number' ? id : (id && id.image_id ? id.image_id : id),
+                        url: `https://images.igdb.com/igdb/image/upload/t_screenshot_big/${typeof id === 'number' ? id : (id && id.image_id ? id.image_id : id)}.jpg`
+                    }));
+                }
+            }
+
+            if (game.similar_games && Array.isArray(game.similar_games)) {
+                const similarGameIds = game.similar_games.map(id => typeof id === 'number' ? id : (id && id.id ? id.id : id)).filter(Boolean);
+                if (similarGameIds.length > 0) {
+                    try {
+                        const similarGamesQuery = `fields id,name,slug,cover.image_id,rating; where id = (${similarGameIds.slice(0, 10).join(',')});`;
+                        const similarGamesResponse = await axios.post(
+                            `${this.baseURL}/games`,
+                            similarGamesQuery,
+                            { headers }
+                        );
+                        game.similar_games = similarGamesResponse.data.map(g => ({
+                            id: g.id,
+                            name: g.name,
+                            slug: g.slug,
+                            cover: g.cover ? { url: `https://images.igdb.com/igdb/image/upload/t_cover_big/${g.cover.image_id}.jpg` } : null,
+                            rating: g.rating
+                        }));
+                    } catch (error) {
+                        console.error('Error fetching similar games:', error.message);
+                        game.similar_games = [];
+                    }
+                }
+            }
+
+            const normalized = this.normalizeGame(game);
+            this.setCachedGame(cacheKey, normalized);
+            return normalized;
+        } catch (error) {
+            console.error('Error getting game by slug:', error.response?.data || error.message);
             throw error;
         }
     }
@@ -812,41 +668,11 @@ class IGDBService {
             ? new Date(game.first_release_date * 1000).toISOString()
             : undefined;
 
-        let pegi = undefined;
-        if (game.age_ratings) {
-            let ageRatingsArray = [];
-
-            if (Array.isArray(game.age_ratings)) {
-                if (game.age_ratings.length > 0) {
-                    ageRatingsArray = game.age_ratings.filter(ar => 
-                        ar && typeof ar === 'object' && ar.category !== undefined
-                    );
-                }
-            }
-            else if (typeof game.age_ratings === 'object' && game.age_ratings.category !== undefined) {
-                ageRatingsArray = [game.age_ratings];
-            }
-
-            const pegiRating = ageRatingsArray.find(ar => ar && ar.category === 2);
-            if (pegiRating && pegiRating.rating !== undefined) {
-                const pegiMap = { 1: 3, 2: 7, 3: 12, 4: 16, 5: 18 };
-                const pegiValue = pegiMap[pegiRating.rating];
-                pegi = pegiValue || undefined;
-                if (pegi) {
-                    console.log(`Game ${game.id} (${game.name}): PEGI rating found: category=${pegiRating.category}, rating=${pegiRating.rating}, mapped to ${pegi}`);
-                }
-            } else if (game.age_ratings && Array.isArray(game.age_ratings) && game.age_ratings.length > 0) {
-                if (game.id && game.id < 1000) {
-                    console.log(`Game ${game.id} (${game.name}): No PEGI rating found. age_ratings:`, JSON.stringify(game.age_ratings).substring(0, 200));
-                }
-            }
-        }
-
         let externalLinks = undefined;
         if (game.websites) {
             const websites = Array.isArray(game.websites) ? game.websites : [game.websites];
             const links = {};
-            
+
             websites.forEach(w => {
                 if (w && w.url && w.category !== undefined) {
                     if (w.category === 13) {
@@ -874,9 +700,46 @@ class IGDBService {
                     }
                 }
             });
-            
+
             if (links.steam || links.gog || links.epic || links.playstation || links.xbox) {
                 externalLinks = links;
+            }
+        }
+
+        let screenshots = [];
+        if (game.screenshots) {
+            if (Array.isArray(game.screenshots)) {
+                screenshots = game.screenshots.map(s => {
+                    const imageId = typeof s === 'number' ? s : (s && s.image_id ? s.image_id : (s && s.id ? s.id : null));
+                    if (imageId) {
+                        return {
+                            image_id: imageId,
+                            url: `https://images.igdb.com/igdb/image/upload/t_screenshot_big/${imageId}.jpg`
+                        };
+                    }
+                    return null;
+                }).filter(Boolean);
+            }
+        }
+
+        let languageSupports = [];
+        if (game.language_supports && Array.isArray(game.language_supports)) {
+            languageSupports = game.language_supports.map(ls => {
+                if (ls && typeof ls === 'object') {
+                    return {
+                        language: ls.language ? (typeof ls.language === 'object' ? ls.language.name : ls.language) : null,
+                        language_support_type: ls.language_support_type
+                    };
+                }
+                return null;
+            }).filter(Boolean);
+        }
+
+        let trailerVideoId = undefined;
+        if (game.videos && Array.isArray(game.videos) && game.videos.length > 0) {
+            const first = game.videos.find(v => v && v.video_id) || game.videos[0];
+            if (first && first.video_id) {
+                trailerVideoId = first.video_id;
             }
         }
 
@@ -884,13 +747,59 @@ class IGDBService {
             ...game,
             releaseDate,
             cover: game.cover
-                ? { url: `https://images.igdb.com/igdb/image/upload/t_cover_big/${game.cover.image_id}.jpg` }
+                ? (game.cover.url
+                    ? { url: game.cover.url }
+                    : (game.cover.image_id ? { url: `https://images.igdb.com/igdb/image/upload/t_cover_big/${game.cover.image_id}.jpg` } : null))
                 : null,
             engines: game.game_engines || undefined,
-            pegi: pegi,
             externalLinks: externalLinks,
-            age_ratings: game.age_ratings || []
+            trailerVideoId,
+            screenshots: screenshots,
+            language_supports: languageSupports,
+            similar_games: game.similar_games || []
         };
+    }
+
+    async getPopularGames({ limit = 20 } = {}) {
+        const headers = await twitchAuth.getAuthHeaders();
+        const actualLimit = Math.min(Number(limit) || 20, 50);
+        const query = `fields id,name,slug,first_release_date,genres.name,platforms.name,game_engines.name,game_modes.name,themes.name,keywords.name,tags,player_perspectives.name,hypes,artworks.image_id,videos.video_id,cover.image_id,cover.url,rating; where cover != null & rating != null; sort rating desc; limit ${actualLimit};`;
+        const response = await axios.post(`${this.baseURL}/games`, query, { headers, timeout: 10000 });
+        return (response.data || []).map(g => this.normalizeGame(g));
+    }
+
+    async getUpcomingGames({ limit = 12 } = {}) {
+        const headers = await twitchAuth.getAuthHeaders();
+        const actualLimit = Math.min(Number(limit) || 12, 50);
+        const now = Math.floor(Date.now() / 1000);
+        const query = `fields id,name,slug,first_release_date,genres.name,platforms.name,game_engines.name,game_modes.name,themes.name,keywords.name,tags,player_perspectives.name,hypes,artworks.image_id,videos.video_id,cover.image_id,cover.url,rating; where first_release_date != null & first_release_date > ${now}; sort first_release_date asc; limit ${actualLimit};`;
+        const response = await axios.post(`${this.baseURL}/games`, query, { headers, timeout: 10000 });
+        return (response.data || []).map(g => this.normalizeGame(g));
+    }
+
+    buildRatingWhere(ratingMin, ratingMax, log = false) {
+        const where = [];
+        if (ratingMin !== undefined && ratingMin !== null && !isNaN(Number(ratingMin))) {
+            const minRating = Number(ratingMin);
+            const minValue = minRating > 0 ? Math.max(0, Math.floor(minRating - 0.5)) : 0;
+            where.push(`rating >= ${minValue}`);
+            if (log) {
+                console.log(`Rating min filter: requesting rating >= ${minValue} (for minRating=${minRating})`);
+            }
+        }
+        if (ratingMax !== undefined && ratingMax !== null && !isNaN(Number(ratingMax))) {
+            const maxRating = Number(ratingMax);
+            let maxValue;
+            if (maxRating >= 100) maxValue = 100;
+            else if (maxRating >= 22 && maxRating <= 91) maxValue = Math.min(100, maxRating + 10);
+            else if (maxRating < 22) maxValue = Math.min(100, maxRating + 5);
+            else maxValue = Math.min(100, maxRating + 2);
+            where.push(`rating <= ${maxValue}`);
+            if (log) {
+                console.log(`Rating max filter: requesting rating <= ${maxValue} (for maxRating=${maxRating})`);
+            }
+        }
+        return where;
     }
 }
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useFilters } from '../../hooks/useFilters';
+import { useFilters } from '../../contexts/FiltersContext';
 import { extractGenresFromGames, extractPlatformsFromGames, extractEnginesFromGames, InitialFilters, type GenreOption, type PlatformOption, type EngineOption, type GameFilters } from '../../types/filters';
 import type { Game } from '../../services/api';
 import FilterSection from '../FilterSection/FilterSection';
@@ -13,9 +13,10 @@ import './FilterPanel.css';
 interface FilterPanelProps {
   onFiltersChange: (filters: GameFilters) => void;
   allGames: Game[];
+  isOpen?: boolean;
 }
 
-const FilterPanel: React.FC<FilterPanelProps> = ({ onFiltersChange, allGames }) => {
+const FilterPanel: React.FC<FilterPanelProps> = ({ onFiltersChange, allGames, isOpen = false }) => {
   const {
     filters,
     updateFilter,
@@ -35,8 +36,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ onFiltersChange, allGames }) 
     platforms: false,
     engines: false,
     release: false,
-    rating: false,
-    pegi: false
+    rating: false
   });
 
   // загрузка статистики фильтров(только при монтировании)
@@ -96,6 +96,10 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ onFiltersChange, allGames }) 
     _resetFilters();
     onFiltersChange(InitialFilters);
   };
+
+  if (!isOpen) {
+    return null;
+  }
 
   return (
     <div className="filter-panel">
@@ -300,26 +304,6 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ onFiltersChange, allGames }) 
         </div>
       </FilterSection>
 
-      <FilterSection title="PEGI" isExpanded={expandedSections.pegi} onToggle={() => toggleSection('pegi')}>
-        <div role="group" aria-label="Select PEGI age ratings">
-          {[3, 7, 12, 16, 18].map(p => (
-            <label key={p}>
-              <input
-                type="checkbox"
-                checked={filters.pegi.includes(p)}
-                onChange={() => {
-                  const newPegi = filters.pegi.includes(p)
-                    ? filters.pegi.filter(x => x !== p)
-                    : [...filters.pegi, p];
-                  handleFilterChange('pegi', newPegi);
-                }}
-                aria-label={`Filter games with PEGI ${p} age rating`}
-              />
-              {p}+
-            </label>
-          ))}
-        </div>
-      </FilterSection>
     </div>
   );
 };

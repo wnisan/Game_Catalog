@@ -5,8 +5,10 @@ import LoadingSpinner from "../components/Loading/LoadingSpinner";
 import LoadingMore from '../components/LoadingMore/LoadingMore';
 import FilterPanel from '../components/FilterPanel/FilterPanel';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
-import { useFilters } from '../hooks/useFilters';
+import { useFilters } from '../contexts/FiltersContext';
 import { type GameFilters } from '../types/filters';
+import PopularGames from '../components/PopularGames/PopularGames';
+import UpcomingGames from '../components/UpcomingGames/UpcomingGames';
 import './ExplorePage.css';
 
 const ExplorePage = () => {
@@ -16,6 +18,7 @@ const ExplorePage = () => {
   const [error, setError] = useState<string>('');
   const { filters, updateMultipleFilter } = useFilters();
   const [totalCount, setTotalCount] = useState<number | null>(null);
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
 
   // бесконечная прокрутка
   const fetchMoreGames = useCallback(async (page: number): Promise<Game[]> => {
@@ -69,10 +72,14 @@ const ExplorePage = () => {
     : hasMoreFromHook;
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
     const timeoutId = setTimeout(() => {
       const loadData = async () => {
-    resetInfiniteScroll();
-    setAllGames([]);
+        resetInfiniteScroll();
+        setAllGames([]);
         setTotalCount(null);
         setError('');
         await loadInitialGames();
@@ -81,7 +88,7 @@ const ExplorePage = () => {
     }, filters.search ? 800 : 100); // задержка
 
     return () => clearTimeout(timeoutId);
-  }, [filters]);
+  }, [filters, resetInfiniteScroll]);
 
   // начальная загрузка
   const loadInitialGames = async () => {
@@ -90,7 +97,6 @@ const ExplorePage = () => {
       setError('');
       resetInfiniteScroll();
       console.log('loadInitialGames - filters:', filters);
-      console.log('loadInitialGames - filters.pegi:', filters.pegi);
       const result = await getGames(filters, 20, 0, 0, true);
 
       if (result && typeof result === 'object' && 'games' in result) {
@@ -112,14 +118,87 @@ const ExplorePage = () => {
     }
   };
 
-  // применение фильтров
   const applyFilters = () => {
-    setFilteredGames(allGames);
+    let result = [...allGames];
+
+    // Фильтрация по жанрам
+    if (filters.genres.length > 0) {
+      result = result.filter(game =>
+        game.genres?.some(g => filters.genres.includes(g.id))
+      );
+    }
+
+    // Фильтрация по платформам
+    if (filters.platforms.length > 0) {
+      result = result.filter(game =>
+        game.platforms?.some(p => filters.platforms.includes(p.id))
+      );
+    }
+
+    // Fильтрация по движкам
+    if (filters.engines.length > 0) {
+      result = result.filter(game =>
+        game.engines?.some(e => filters.engines.includes(e.id))
+      );
+    }
+
+    // Фильтрация по минимальному рейтингу
+    if (filters.ratingMin > 0) {
+      result = result.filter(game =>
+        game.rating && Math.round(game.rating) >= filters.ratingMin
+      );
+    }
+
+    // Фильтрация по максимальному рейтингу
+    if (filters.ratingMax < 100) {
+      result = result.filter(game =>
+        game.rating && Math.round(game.rating) <= filters.ratingMax
+      );
+    }
+
+    // Фильтрация по дате релиза (минимум)
+    if (filters.releaseDateMin) {
+      const minDate = new Date(filters.releaseDateMin).getTime();
+      result = result.filter(game => {
+        if (!game.releaseDate) return false;
+        return new Date(game.releaseDate).getTime() >= minDate;
+      });
+    }
+
+    // Фильтрация по дате релиза (максимум)
+    if (filters.releaseDateMax) {
+      const maxDate = new Date(filters.releaseDateMax).getTime();
+      result = result.filter(game => {
+        if (!game.releaseDate) return false;
+        return new Date(game.releaseDate).getTime() <= maxDate;
+      });
+    }
+
+    // Фильтрация по поиску
+    if (filters.search && filters.search.trim()) {
+      const searchLower = filters.search.trim().toLowerCase();
+      result = result.filter(game =>
+        game.name?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    setFilteredGames(result);
   };
 
   useEffect(() => {
     applyFilters();
   }, [allGames, filters]);
+
+  useEffect(() => {
+    const handleToggleFilters = () => {
+      setIsFilterPanelOpen(prev => !prev);
+    };
+
+    window.addEventListener('toggleFilters', handleToggleFilters);
+    return () => {
+      window.removeEventListener('toggleFilters', handleToggleFilters);
+    };
+  }, []);
 
   // бработка изменений
   const handleFiltersChange = (newFilters: GameFilters) => {
@@ -130,12 +209,15 @@ const ExplorePage = () => {
     <div className="explore-page">
       <a href="#main-content" className="skip-link">Skip to main content</a>
       <header className="explore-page__header">
+        <PopularGames />
+        <UpcomingGames />
         <h1>Game Catalog</h1>
       </header>
 
       <FilterPanel
         onFiltersChange={handleFiltersChange}
         allGames={allGames}
+        isOpen={isFilterPanelOpen}
       />
 
       {!initialLoading && (
@@ -158,7 +240,11 @@ const ExplorePage = () => {
         </div>
       )}
 
-      {initialLoading && <LoadingSpinner />}
+      {initialLoading && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+          <LoadingSpinner />
+        </div>
+      )}
 
       {!initialLoading && filteredGames.length > 0 && (
         <>
@@ -172,8 +258,8 @@ const ExplorePage = () => {
           </div>
           {hasMore && (
             <>
-          <div ref={sentinelRef} style={{ height: '1px' }}></div>
-          <LoadingMore isLoading={isLoadingMore} hasMore={hasMore} />
+              <div ref={sentinelRef} style={{ height: '1px' }}></div>
+              <LoadingMore isLoading={isLoadingMore} hasMore={hasMore} />
             </>
           )}
         </>

@@ -1,0 +1,179 @@
+.comments {
+  margin-top: 32px;
+  padding: 24px;
+  background: rgba(22, 27, 34, 0.6);
+  border-radius: 12px;
+  border: 1px solid #30363d;
+}
+
+.comments__title {
+  font-size: 1.5rem;
+  margin-bottom: 24px;
+  color: #e6edf3;
+  font-weight: 700;
+}
+
+.comments__form {
+  margin-bottom: 32px;
+}
+
+.comments__input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  background: #0d1117;
+  color: #e6edf3;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  margin-bottom: 12px;
+}
+
+.comments__input:focus {
+  outline: none;
+  border-color: #58a6ff;
+  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+}
+
+.comments__submit-btn {
+  background: linear-gradient(135deg, #58a6ff 0%, #7c3aed 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.comments__submit-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4493f8 0%, #6d28d9 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(88, 166, 255, 0.3);
+}
+
+.comments__submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.comments__loading,
+.comments__empty {
+  text-align: center;
+  padding: 24px;
+  color: #8b949e;
+}
+
+.comments__list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.comments__item {
+  padding: 16px;
+  background: rgba(13, 17, 23, 0.6);
+  border-radius: 8px;
+  border: 1px solid #30363d;
+}
+
+.comments__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.comments__author {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.comments__author strong {
+  color: #e6edf3;
+  font-size: 14px;
+}
+
+.comments__date {
+  color: #8b949e;
+  font-size: 12px;
+}
+
+.comments__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.comments__action-btn {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.comments__action-btn--edit {
+  background: rgba(88, 166, 255, 0.2);
+  color: #58a6ff;
+}
+
+.comments__action-btn--edit:hover {
+  background: rgba(88, 166, 255, 0.3);
+}
+
+.comments__action-btn--delete {
+  background: rgba(248, 81, 73, 0.2);
+  color: #f85149;
+}
+
+.comments__action-btn--delete:hover {
+  background: rgba(248, 81, 73, 0.3);
+}
+
+.comments__action-btn--save {
+  background: rgba(88, 166, 255, 0.2);
+  color: #58a6ff;
+}
+
+.comments__action-btn--save:hover {
+  background: rgba(88, 166, 255, 0.3);
+}
+
+.comments__action-btn--cancel {
+  background: rgba(139, 148, 158, 0.2);
+  color: #8b949e;
+}
+
+.comments__action-btn--cancel:hover {
+  background: rgba(139, 148, 158, 0.3);
+}
+
+.comments__text {
+  color: #e6edf3;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.comments__edit-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  background: #0d1117;
+  color: #e6edf3;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.comments__edit-input:focus {
+  outline: none;
+  border-color: #58a6ff;
+  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+}

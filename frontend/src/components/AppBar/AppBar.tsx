@@ -1,15 +1,24 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useFilters } from '../../contexts/FiltersContext';
 import './AppBar.css';
 
 const AppBar: React.FC = () => {
     const { isAuthenticated, logout } = useAuth();
+    const { getActiveFiltersCount } = useFilters();
     const navigate = useNavigate();
+    const location = useLocation();
+    const isExplorePage = location.pathname === '/' || location.pathname === '/explore';
+    const activeFiltersCount = getActiveFiltersCount();
 
     const handleLogout = () => {
         logout();
         navigate('/auth');
+    };
+
+    const handleToggleFilters = () => {
+        window.dispatchEvent(new CustomEvent('toggleFilters'));
     };
 
     return (
@@ -27,6 +36,22 @@ const AppBar: React.FC = () => {
                                     Explore
                                 </Link>
                             </li>
+                            
+                            {isExplorePage && (
+                                <li className="app-bar__nav-item" role="listitem">
+                                    <button
+                                        className="app-bar__filter-btn"
+                                        onClick={handleToggleFilters}
+                                        type="button"
+                                        aria-label="Toggle filters panel"
+                                    >
+                                        Filters
+                                        {activeFiltersCount > 0 && (
+                                            <span className="app-bar__filter-badge">{activeFiltersCount}</span>
+                                        )}
+                                    </button>
+                                </li>
+                            )}
 
                             <li className="app-bar__nav-item" role="listitem">
                                 <Link 
@@ -62,6 +87,26 @@ const AppBar: React.FC = () => {
                     </nav>
                 ) : (
                     <div className="app-bar__auth">
+                        <Link 
+                            to="/explore" 
+                            className="app-bar__nav-link"
+                            aria-label="Explore games catalog"
+                        >
+                            Explore
+                        </Link>
+                        {isExplorePage && (
+                            <button
+                                className="app-bar__filter-btn-secondary"
+                                onClick={handleToggleFilters}
+                                type="button"
+                                aria-label="Toggle filters panel"
+                            >
+                                Filters
+                                {activeFiltersCount > 0 && (
+                                    <span className="app-bar__filter-badge">{activeFiltersCount}</span>
+                                )}
+                            </button>
+                        )}
                         <Link 
                             to="/auth" 
                             className="app-bar__login-btn"

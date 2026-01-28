@@ -58,6 +58,27 @@ export function initDatabase() {
         )
     `);
 
+    // Таблица комментариев к играм
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS game_comments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            game_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            comment_text TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    `);
+
+    db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_game_comments_game_id ON game_comments(game_id)
+    `);
+
+    db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_game_comments_user_id ON game_comments(user_id)
+    `);
+
     // Создаем индекс для быстрого поиска по токену
     db.exec(`
         CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token ON refresh_tokens(token)
@@ -67,15 +88,13 @@ export function initDatabase() {
 }
 
 // Пользователи
-export function createUser(email, name, password) {
+export function createUser(email, name, password, googleId = null) {
     let passwordHash = null;
     if (password && password.trim() !== '') {
         passwordHash = bcrypt.hashSync(password, 10);
     }
 
-    // компиляция
     const stmt = db.prepare('INSERT INTO users (email, name, password_hash) VALUES (?, ?, ?)');
-    // выполнение с прааметрами 
     const result = stmt.run(email, name, passwordHash);
     return result.lastInsertRowid;
 }
@@ -181,11 +200,115 @@ export function deleteUserRefreshTokens(userId) {
     stmt.run(userId);
 }
 
+export function deleteUser(userId) {
+    const stmt = db.prepare('DELETE FROM users WHERE id = ?');
+    const result = stmt.run(userId);
+    return result.changes > 0;
+}
+
 // Очистка истекших токенов
 export function cleanupExpiredTokens() {
     const stmt = db.prepare('DELETE FROM refresh_tokens WHERE expires_at <= datetime("now")');
     const result = stmt.run();
     return result.changes;
+}
+
+export function updateRefreshTokenExpiry(token, expiresAtIso) {
+    const stmt = db.prepare('UPDATE refresh_tokens SET expires_at = ? WHERE token = ?');
+    const result = stmt.run(expiresAtIso, token);
+    return result.changes > 0;
+}
+
+// Комментарии к играм
+export function createComment(userId, gameId, commentText) {
+    const stmt = db.prepare('INSERT INTO game_comments (user_id, game_id, comment_text) VALUES (?, ?, ?)');
+    const result = stmt.run(userId, gameId, commentText);
+    return result.lastInsertRowid;
+}
+
+export function getCommentsByGameId(gameId) {
+    const stmt = db.prepare(`
+        SELECT 
+            gc.id,
+            gc.game_id,
+            gc.comment_text,
+            gc.created_at,
+            gc.updated_at,
+            u.id as user_id,
+            u.name as user_name,
+            u.email as user_email
+        FROM game_comments gc
+        JOIN users u ON gc.user_id = u.id
+        WHERE gc.game_id = ?
+        ORDER BY gc.created_at DESC
+    `);
+    return stmt.all(gameId);
+}
+
+export function getCommentsByUserId(userId) {
+    const stmt = db.prepare(`
+        SELECT 
+            gc.id,
+            gc.game_id,
+            gc.comment_text,
+            gc.created_at,
+            gc.updated_at,
+            u.id as user_id,
+            u.name as user_name,
+            u.email as user_email
+        FROM game_comments gc
+        JOIN users u ON gc.user_id = u.id
+        WHERE gc.user_id = ?
+        ORDER BY gc.created_at DESC
+    `);
+    return stmt.all(userId);
+}
+
+export function updateComment(commentId, userId, commentText) {
+    const existing = db
+        .prepare('SELECT game_id FROM game_comments WHERE id = ? AND user_id = ?')
+        .get(commentId, userId);
+
+    if (!existing) {
+        return null;
+    }
+
+    const stmt = db.prepare(`
+        UPDATE game_comments
+        SET comment_text = ?, updated_at = datetime('now')
+        WHERE id = ? AND user_id = ?
+    `);
+
+    const result = stmt.run(commentText, commentId, userId);
+
+    if (result.changes > 0) {
+        return existing.game_id;
+    }
+    return null;
+}
+
+export function deleteComment(commentId, userId) {
+    const stmt = db.prepare('DELETE FROM game_comments WHERE id = ? AND user_id = ?');
+    const result = stmt.run(commentId, userId);
+    return result.changes > 0;
+}
+
+export function getCommentById(commentId) {
+    const stmt = db.prepare(`
+        SELECT 
+            gc.id,
+            gc.game_id,
+            gc.comment_text,
+            gc.created_at,
+            gc.updated_at,
+            u.id as user_id,
+            u.name as user_name,
+            u.email as user_email
+        FROM game_comments gc
+        JOIN users u ON gc.user_id = u.id
+        WHERE gc.id = ?
+    `);
+    return stmt.get(commentId);
 }
 
 initDatabase();

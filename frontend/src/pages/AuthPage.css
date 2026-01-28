@@ -368,6 +368,31 @@
   transform: none;
 }
 
+.auth-page__guest-btn {
+  width: 100%;
+  background: transparent;
+  color: #8b949e;
+  border: 1px solid #30363d;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 16px;
+}
+
+.auth-page__guest-btn:hover:not(:disabled) {
+  background: rgba(88, 166, 255, 0.1);
+  border-color: #58a6ff;
+  color: #58a6ff;
+}
+
+.auth-page__guest-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 @media (max-width: 768px) {
   .auth-page {
     padding: 16px;

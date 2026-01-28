@@ -105,21 +105,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         loadUser();
     }, []);
 
-    // Автоматический выход при закрытии окна браузера или вкладки
-    React.useEffect(() => {
-        const handlePageHide = (event: PageTransitionEvent) => {
-            if (event.persisted === false) {
-                logout();
-            }
-        };
-
-        window.addEventListener('pagehide', handlePageHide);
-
-        return () => {
-            window.removeEventListener('pagehide', handlePageHide);
-        };
-    }, [logout]);
-
     const value: AuthContextType = {
         user,
         token,

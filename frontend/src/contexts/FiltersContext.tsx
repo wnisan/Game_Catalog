@@ -1,13 +1,12 @@
-import { useState, useCallback, useEffect } from "react";
-import { InitialFilters, type GameFilters } from "../types/filters";
+import React, { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
+import { InitialFilters, type GameFilters } from '../types/filters';
+import { useAuth } from './AuthContext';
 
-// для localStorage
-const FILTERS_STORAGE_KEY = 'gameFilters';
+const getStorageKey = (userId?: number | null) => userId ? `gameFilters_${userId}` : 'gameFilters_guest';
 
-// Загружаем фильтры из localStorage
-const loadFiltersFromStorage = (): GameFilters => {
+const loadFiltersFromStorage = (storageKey: string): GameFilters => {
     try {
-        const stored = localStorage.getItem(FILTERS_STORAGE_KEY);
+        const stored = localStorage.getItem(storageKey);
         if (stored) {
             const parsed = JSON.parse(stored);
             return {
@@ -21,33 +20,50 @@ const loadFiltersFromStorage = (): GameFilters => {
     return InitialFilters;
 };
 
-// Сохраняем фильтры в localStorage
-const saveFiltersToStorage = (filters: GameFilters) => {
+const saveFiltersToStorage = (storageKey: string, filters: GameFilters) => {
     try {
-        localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(filters));
+        localStorage.setItem(storageKey, JSON.stringify(filters));
     } catch (error) {
         console.error('Error saving filters to storage:', error);
     }
 };
 
-// загружает из localStorage
-export const useFilters = () => {
-    const[filters, setFilters] = useState<GameFilters>(loadFiltersFromStorage());
+interface FiltersContextType {
+    filters: GameFilters;
+    updateFilter: <K extends keyof GameFilters>(key: K, value: GameFilters[K]) => void;
+    updateMultipleFilter: (updates: Partial<GameFilters>) => void;
+    resetFilters: () => void;
+    hasActiveFilters: () => boolean;
+    getActiveFiltersCount: () => number;
+}
 
-    // сброс фильтров
+const FiltersContext = createContext<FiltersContextType | undefined>(undefined);
+
+interface FiltersProviderProps {
+    children: ReactNode;
+}
+
+export const FiltersProvider: React.FC<FiltersProviderProps> = ({ children }) => {
+    const { user } = useAuth();
+    const storageKey = getStorageKey(user?.id);
+    const [filters, setFilters] = useState<GameFilters>(loadFiltersFromStorage(storageKey));
+
     useEffect(() => {
         const handleFiltersReset = () => {
             setFilters(InitialFilters);
-            localStorage.removeItem(FILTERS_STORAGE_KEY);
+            localStorage.removeItem(storageKey);
         };
 
         window.addEventListener('filtersReset', handleFiltersReset);
         return () => {
             window.removeEventListener('filtersReset', handleFiltersReset);
         };
-    }, []);
+    }, [storageKey]);
 
-    // обновление одного фильтра
+    useEffect(() => {
+        setFilters(loadFiltersFromStorage(storageKey));
+    }, [storageKey]);
+
     const updateFilter = useCallback(<K extends keyof GameFilters>(
         key: K,
         value: GameFilters[K]
@@ -57,30 +73,27 @@ export const useFilters = () => {
                 ...prev,
                 [key]: value
             };
-            saveFiltersToStorage(newFilters);
+            saveFiltersToStorage(storageKey, newFilters);
             return newFilters;
         });
-    }, []);
+    }, [storageKey]);
 
-    // делает все поля необязательными
     const updateMultipleFilter = useCallback((updates: Partial<GameFilters>) => {
         setFilters(prev => {
             const newFilters = {
                 ...prev,
                 ...updates
             };
-            saveFiltersToStorage(newFilters);
+            saveFiltersToStorage(storageKey, newFilters);
             return newFilters;
         });
-    }, []);
+    }, [storageKey]);
 
     const resetFilters = useCallback(() => {
         setFilters(InitialFilters);
-        // Очищаем localStorage при сбросе фильтров
-        localStorage.removeItem(FILTERS_STORAGE_KEY);
-    }, []);
+        localStorage.removeItem(storageKey);
+    }, [storageKey]);
 
-    // проверка активных фильтров
     const hasActiveFilters = useCallback((): boolean => {
         return (
             filters.genres.length > 0 ||
@@ -90,12 +103,10 @@ export const useFilters = () => {
             filters.ratingMax < 100 ||
             !!filters.releaseDateMin ||
             !!filters.releaseDateMax ||
-            filters.pegi.length > 0 ||
             filters.sortBy !== 'release-desc'
         );
     }, [filters]);
 
-    // количесво активных
     const getActiveFiltersCount = useCallback((): number => {
         let count = 0;
         if (filters.genres.length > 0) count++;
@@ -105,19 +116,28 @@ export const useFilters = () => {
         if (filters.ratingMax < 100) count++;
         if (filters.releaseDateMin) count++;
         if (filters.releaseDateMax) count++;
-        if (filters.pegi.length > 0) count++;
         if (filters.sortBy !== 'release-desc') count++;
         return count;
     }, [filters]);
 
-    return {
-      filters,         
-      updateFilter, 
-      updateMultipleFilter,     
-      resetFilters,    
-      hasActiveFilters,
-      getActiveFiltersCount 
-  };
+    return (
+        <FiltersContext.Provider value={{
+            filters,
+            updateFilter,
+            updateMultipleFilter,
+            resetFilters,
+            hasActiveFilters,
+            getActiveFiltersCount
+        }}>
+            {children}
+        </FiltersContext.Provider>
+    );
 };
 
-export type UseFiltersReturn = ReturnType<typeof useFilters>
+export const useFilters = () => {
+    const context = useContext(FiltersContext);
+    if (context === undefined) {
+        throw new Error('useFilters must be used within a FiltersProvider');
+    }
+    return context;
+};

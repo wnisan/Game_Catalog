@@ -27,28 +27,35 @@ export function verifyToken(token) {
     }
 }
 
-export async function registerUser(email, name, password) {
+export async function registerUser(email, name, password, isOAuth = false) {
     const existingUser = getUserByEmail(email);
-    if (existingUser) {
+    if (existingUser && !isOAuth) {
         throw new Error('User with this email already exists');
     }
 
-    // Создаем пользователя
-    const userId = createUser(email, name, password);
-    const user = getUserById(userId);
-    
-    // Генерируем токены
+    let userId;
+    let user;
+
+    if (existingUser && isOAuth) {
+        user = existingUser;
+        userId = user.id;
+    } else {
+        userId = createUser(email, name, password);
+        user = getUserById(userId);
+    }
+
     const accessToken = generateAccessToken(userId);
     const refreshToken = generateRefreshToken();
-    
+
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    expiresAt.setDate(expiresAt.getDate() + 365);
     createRefreshToken(userId, refreshToken, expiresAt.toISOString());
 
     return { user, accessToken, refreshToken };
 }
 
 export async function loginUser(email, password) {
+    const { deleteUserRefreshTokens } = await import('./database.js');
     const user = getUserByEmail(email);
     if (!user) {
         throw new Error('Invalid email or password');
@@ -62,35 +69,48 @@ export async function loginUser(email, password) {
         throw new Error('Invalid email or password');
     }
 
+    deleteUserRefreshTokens(user.id);
+
     const accessToken = generateAccessToken(user.id);
     const refreshToken = generateRefreshToken();
-    
+
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    expiresAt.setFullYear(expiresAt.getFullYear() + 1);
     createRefreshToken(user.id, refreshToken, expiresAt.toISOString());
-    
+
     const { password_hash, ...userWithoutPassword } = user;
 
     return { user: userWithoutPassword, accessToken, refreshToken };
 }
 
 export async function refreshAccessToken(refreshToken) {
+    const { getRefreshToken, deleteRefreshToken, createRefreshToken } = await import('./database.js');
     const tokenData = getRefreshToken(refreshToken);
     if (!tokenData) {
         throw new Error('Invalid or expired refresh token');
     }
 
-    // Генерируем новый access token
-    const accessToken = generateAccessToken(tokenData.user_id);
+    if (new Date(tokenData.expires_at) < new Date()) {
+        deleteRefreshToken(refreshToken);
+        throw new Error('Refresh token expired');
+    }
+
     const user = getUserById(tokenData.user_id);
-    
     if (!user) {
         throw new Error('User not found');
     }
 
+    const accessToken = generateAccessToken(tokenData.user_id);
+    const newRefreshToken = generateRefreshToken();
+
+    const expiresAt = new Date();
+    expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+    createRefreshToken(tokenData.user_id, newRefreshToken, expiresAt.toISOString());
+    deleteRefreshToken(refreshToken);
+
     const { password_hash, ...userWithoutPassword } = user;
 
-    return { accessToken, user: userWithoutPassword };
+    return { accessToken, refreshToken: newRefreshToken, user: userWithoutPassword };
 }
 
 export async function logoutUser(refreshToken) {

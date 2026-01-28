@@ -346,6 +346,15 @@ const AuthPage: React.FC = () => {
                                 </>
                             )}
                         </div>
+
+                        <button
+                            type="button"
+                            className="auth-page__guest-btn"
+                            onClick={() => navigate('/explore')}
+                            disabled={isLoading}
+                        >
+                            Continue without registration
+                        </button>
                     </form>
                 </div>
             </div>

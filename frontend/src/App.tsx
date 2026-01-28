@@ -1,8 +1,10 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { FiltersProvider } from './contexts/FiltersContext';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 import AppBar from './components/AppBar/AppBar';
+import ScrollToTop from './components/ScrollToTop/ScrollToTop';
 import AuthPage from './pages/AuthPage';
 import ExplorePage from './pages/ExplorePage';
 import UserGamesPage from './pages/UserGamesPage';
@@ -15,6 +17,7 @@ function App() {
   return (
     <Router>
       <AuthProvider>
+        <FiltersProvider>
         <div className="App">
           <Routes>
             <Route
@@ -31,7 +34,7 @@ function App() {
               path="/"
               element={
                 <PublicLayout>
-                  <Navigate to="/explore" replace />
+                  <ExplorePage />
                 </PublicLayout>
               }
             />
@@ -77,7 +80,7 @@ function App() {
             />
 
             <Route
-              path="/game/:id"
+              path="/game/:slug"
               element={
                 <PublicLayout>
                   <GameDetailPage />
@@ -88,6 +91,7 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
+        </FiltersProvider>
       </AuthProvider>
     </Router>
   );
@@ -97,7 +101,7 @@ const AuthPageWrapper: React.FC = () => {
   const { isAuthenticated } = useAuth();
 
   if (isAuthenticated) {
-    return <Navigate to='/explore' replace />
+    return <Navigate to='/' replace />
   }
 
   return <AuthPage />;
@@ -106,6 +110,7 @@ const AuthPageWrapper: React.FC = () => {
 const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <>
+      <ScrollToTop />
       <AppBar />
       <main className="app-main">
         {children}
@@ -117,6 +122,7 @@ const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 const ProtectedLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <>
+      <ScrollToTop />
       <AppBar />
       <main className="app-main">
         {children}
@@ -162,7 +168,7 @@ const SignInCallback: React.FC = () => {
 
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        window.location.href = '/explore';
+        window.location.href = '/';
       } catch (err: any) {
         console.error('Google auth error:', err);
         const errorMessage = err?.response?.data?.error || err?.response?.data?.details || err?.message || 'Failed to authenticate with Google';

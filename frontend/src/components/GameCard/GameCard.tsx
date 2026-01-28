@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useFilters } from '../../contexts/FiltersContext';
 import { addFavorite, removeFavorite, checkFavorite } from '../../services/api';
-import type {Game} from '../../services/api';
+import type { Game } from '../../services/api';
 import './GameCard.css';
 
 interface GameCardProps {
@@ -11,26 +12,28 @@ interface GameCardProps {
     onFavoriteChange?: (gameId: number, isFavorited: boolean) => void;
 }
 
-const GameCard = ({game, onClick, onFavoriteChange}: GameCardProps) => {
+const GameCard = ({ game, onClick, onFavoriteChange }: GameCardProps) => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { isAuthenticated } = useAuth();
+    const { updateFilter } = useFilters();
     const [isFavorited, setIsFavorited] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [playTrailer, setPlayTrailer] = useState(false);
+    const isExplorePage = location.pathname === '/' || location.pathname === '/explore';
+    const [isHovering, setIsHovering] = useState(false);
 
     const handleClick = () => {
         if (onClick) {
             onClick();
         } else {
-            navigate(`/game/${game.id}`);
+            const gameSlug = game.slug || game.id;
+            navigate(`/game/${gameSlug}`);
         }
     };
 
-    const formatRating = (rating: number | undefined): string => {
-        if(!rating) {
-         return "This game doesn't have a rating yet.";
-        } else {
-            return `${Math.round(rating)}/100`;
-        }
+    const formatRating = (rating?: number): string => {
+        return rating ? `${Math.round(rating)}/100` : "This game doesn't have a rating yet.";
     };
 
     useEffect(() => {
@@ -48,7 +51,7 @@ const GameCard = ({game, onClick, onFavoriteChange}: GameCardProps) => {
     }, [game.id, isAuthenticated]);
 
     const handleFavoriteClick = async (e: React.MouseEvent) => {
-        e.stopPropagation(); 
+        e.stopPropagation();
         if (!isAuthenticated) {
             navigate('/auth');
             return;
@@ -77,47 +80,66 @@ const GameCard = ({game, onClick, onFavoriteChange}: GameCardProps) => {
     };
 
     const getCoverUrl = (): string | null => {
-        if (!game.cover?.url) {
-            return null;
-        }
-        
-        if (game.cover.url.startsWith('http://') || game.cover.url.startsWith('https://')) {
+        if (!game.cover?.url) return null;
+
+        if (game.cover.url.startsWith('http')) {
             return game.cover.url;
         }
-        
-        const imageId = game.cover.url.split('/').pop()?.replace('.jpg', '').replace('.png', '');
-        if (imageId) {
-            return `https://images.igdb.com/igdb/image/upload/t_cover_big/${imageId}.jpg`;
-        }
-        
-        return null;
+
+        const imageId = game.cover.url.split('/').pop()?.replace(/\.(jpg|png)$/, '');
+        return imageId ? `https://images.igdb.com/igdb/image/upload/t_cover_big/${imageId}.jpg` : null;
     };
-    
-    return(
-        <article 
-        className="game-card"
-        onClick={handleClick} 
-        role="button" 
-        tabIndex={0}
-        aria-label={`View details for ${game.name}`}
-        onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          handleClick();
-        }
-        }}
+
+    return (
+        <article
+            className="game-card"
+            onClick={handleClick}
+            role="button"
+            tabIndex={0}
+            aria-label={`View details for ${game.name}`}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleClick();
+                }
+            }}
+            onMouseEnter={() => setIsHovering(true)}
+            onMouseLeave={() => setIsHovering(false)}
         >
             <div className="game-card__cover">
-                {getCoverUrl() ? (
-                    <img 
-                        src={getCoverUrl()!} 
-                        alt={`Cover art for ${game.name}`}
-                        loading='lazy'
+                {playTrailer && game.trailerVideoId ? (
+                    <iframe
+                        className="game-card__trailer"
+                        src={`https://www.youtube.com/embed/${game.trailerVideoId}?autoplay=1&mute=1&controls=0`}
+                        title={`${game.name} trailer`}
+                        allow="autoplay; encrypted-media"
                     />
-                ):(
-                    <div className="game-card__no-cover" aria-label="No cover image available">
-                        No image
-                    </div>
+                ) : (
+                    <>
+                        {getCoverUrl() ? (
+                            <img
+                                src={getCoverUrl()!}
+                                alt={`Cover art for ${game.name}`}
+                                loading='lazy'
+                            />
+                        ) : (
+                            <div className="game-card__no-cover" aria-label="No cover image available">
+                                No image
+                            </div>
+                        )}
+                        {isHovering && game.trailerVideoId && (
+                            <button
+                                className="game-card__play"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPlayTrailer(true);
+                                }}
+                                aria-label={`Play ${game.name} trailer`}
+                            >
+                                ▶
+                            </button>
+                        )}
+                    </>
                 )}
                 {isAuthenticated && (
                     <button
@@ -139,19 +161,29 @@ const GameCard = ({game, onClick, onFavoriteChange}: GameCardProps) => {
                     {formatRating(game.rating)}
                 </div>
 
-                {game.pegi && (
-                    <div className="game-card__pegi" aria-label={`Age rating: PEGI ${game.pegi}`}>
-                        PEGI: {game.pegi}+
-                    </div>
-                )}
-
                 {game.genres && game.genres.length > 0 && (
                     <div className="game-card__genres" role="list" aria-label="Genres">
                         {game.genres
                             .filter((genre): genre is { id: number; name: string } => genre !== undefined && genre !== null && genre.name !== undefined)
-                            .slice(0,3)
+                            .slice(0, 3)
                             .map(genre => (
-                                <span key={genre.name} className="game-card__genre-tag" role="listitem">
+                                <span
+                                    key={genre.name}
+                                    className="game-card__genre-tag"
+                                    role="listitem"
+                                    onClick={(e) => {
+                                        if (isExplorePage) {
+                                            e.stopPropagation();
+                                            const target = e.currentTarget;
+                                            target.classList.add('game-card__genre-tag--clicked');
+                                            setTimeout(() => {
+                                                target.classList.remove('game-card__genre-tag--clicked');
+                                            }, 300);
+                                            updateFilter('genres', [genre.id]);
+                                        }
+                                    }}
+                                    style={isExplorePage ? { cursor: 'pointer', transition: 'all 0.2s ease' } : { transition: 'all 0.2s ease' }}
+                                >
                                     {genre.name}
                                 </span>
                             ))}
@@ -160,6 +192,6 @@ const GameCard = ({game, onClick, onFavoriteChange}: GameCardProps) => {
             </div>
         </article>
     )
-    
+
 }
 export default GameCard;

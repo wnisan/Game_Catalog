@@ -9,7 +9,7 @@ const LoadingMore: React.FC<LoadingMoreProps> = ({ isLoading, hasMore }) => {
     if (!hasMore) {
         return (
             <div className='loading-more__end'>
-                <p>You've seen all games!</p>
+                <p>End of games</p>
             </div>
         );
     }

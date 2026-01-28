@@ -1,0 +1,129 @@
+.popular-games {
+  margin: 24px 0 16px 0;
+}
+
+.popular-games__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.popular-games__header h2 {
+  margin: 0;
+  color: #e6edf3;
+  font-size: 1.4rem;
+}
+
+.popular-games__nav {
+  display: flex;
+  gap: 10px;
+}
+
+.popular-games__btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid #30363d;
+  background: rgba(22, 27, 34, 0.6);
+  color: #e6edf3;
+  cursor: pointer;
+  font-size: 20px;
+}
+
+.popular-games__carousel {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.popular-games__window {
+  overflow: hidden;
+}
+
+.popular-games__track {
+  display: flex;
+  transition: transform 0.4s ease;
+}
+
+.popular-games__item {
+  width: 220px;
+  flex-shrink: 0;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #30363d;
+  background: rgba(22, 27, 34, 0.6);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.popular-games__item:hover {
+  transform: translateY(-4px);
+  border-color: #58a6ff;
+}
+
+.popular-games__media {
+  width: 100%;
+  height: 280px;
+  overflow: hidden;
+  background: #0d1117;
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.popular-games__item img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+}
+
+.popular-games__no-cover {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8b949e;
+  background: #0d1117;
+}
+
+.popular-games__content {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.popular-games__title {
+  color: #e6edf3;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.popular-games__genres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.popular-games__genre-tag {
+  background: rgba(88, 166, 255, 0.15);
+  color: #58a6ff;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid rgba(88, 166, 255, 0.3);
+}

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = 'http://localhost:3001';
 
 export const api = axios.create({
     baseURL: API_URL,
@@ -124,21 +124,24 @@ api.interceptors.response.use(
 
             try {
                 const refreshUrl = `${API_URL}/auth/refresh`;
-                await axios.post(refreshUrl, {}, {
+                const refreshResponse = await axios.post(refreshUrl, {}, {
                     withCredentials: true
                 });
 
-                processQueue(null, 'cookie');
-                isRefreshing = false;
-
-                return api(originalRequest);
+                if (refreshResponse.data && refreshResponse.data.user) {
+                    processQueue(null, 'cookie');
+                    isRefreshing = false;
+                    return api(originalRequest);
+                } else {
+                    throw new Error('Refresh failed: no user data');
+                }
             } catch (refreshError: any) {
                 processQueue(refreshError, null);
                 isRefreshing = false;
 
                 if (refreshError?.response?.data?.error) {
                     const errorMessage = refreshError.response.data.error;
-                    if (errorMessage.includes('Refresh token') || errorMessage.includes('refresh token')) {
+                    if (errorMessage.includes('Refresh token') || errorMessage.includes('refresh token') || errorMessage.includes('Session expired')) {
                         refreshError.response.data.error = 'Session expired. Please sign in again';
                     }
                 }
@@ -154,14 +157,16 @@ api.interceptors.response.use(
 export interface Game {
     id: number;
     name: string;
+    slug?: string;
     cover?: { url: string };
     rating?: number;
     summary?: string;
-    releaseDate?: string; 
+    storyline?: string;
+    releaseDate?: string;
     genres?: { id: number; name: string }[];
     platforms?: { id: number; name: string }[];
     engines?: { id: number; name: string }[];
-    pegi?: number;
+    trailerVideoId?: string;
     externalLinks?: {
         steam?: string;
         gog?: string;
@@ -169,12 +174,24 @@ export interface Game {
         playstation?: string;
         xbox?: string;
     };
-}
-
-// проверка подключения с бэком
-export const testBackendConnection = async () => {
-    const responce = await api.get('/');
-    return responce.data;
+    screenshots?: { image_id: string | number; url: string }[];
+    language_supports?: { language: string | null; language_support_type: number }[];
+    similar_games?: { id: number; name: string; slug?: string; cover?: { url: string } | null; rating?: number }[];
+    websites?: { id?: number; url: string; category?: number }[];
+    artworks?: { image_id: string | number; url?: string }[] | (string | number)[];
+    alternative_names?: { name?: string }[] | (string | number)[];
+    themes?: { id?: number; name?: string }[] | (string | number)[];
+    game_modes?: { id?: number; name?: string }[] | (string | number)[];
+    tags?: number[];
+    keywords?: { id?: number; name?: string }[] | (string | number)[];
+    player_perspectives?: { id?: number; name?: string }[] | (string | number)[];
+    hypes?: number;
+    created_at?: number;
+    updated_at?: number;
+    checksum?: string;
+    url?: string;
+    external_games?: number[];
+    release_dates?: number[];
 }
 
 // Функция для задержки
@@ -192,14 +209,6 @@ export const getGames = async (
     const baseDelay = 1000; // 1 секунда базовая задержка
 
     try {
-        let pegiParam: string | undefined = undefined;
-        if (filters.pegi && Array.isArray(filters.pegi) && filters.pegi.length > 0) {
-            pegiParam = filters.pegi.join(',');
-            console.log('PEGI parameter formed:', pegiParam, 'from array:', filters.pegi);
-        } else {
-            console.log('PEGI parameter is undefined or empty. filters.pegi:', filters.pegi);
-        }
-        
         const params: any = {
             limit,
             offset,
@@ -211,29 +220,20 @@ export const getGames = async (
             engines: filters.engines?.length ? filters.engines.join(',') : undefined,
             releaseDateMin: filters.releaseDateMin || undefined,
             releaseDateMax: filters.releaseDateMax || undefined,
-            pegi: pegiParam,
             sortBy: filters.sortBy,
             includeCount: includeCount ? 'true' : 'false'
         };
-        
-        console.log('BEFORE cleanup - filters.pegi:', filters.pegi);
-        console.log('BEFORE cleanup - params.pegi:', params.pegi);
-        console.log('BEFORE cleanup - full params:', JSON.stringify(params, null, 2));
-        
+
         // Удаляем undefined параметры
         Object.keys(params).forEach(key => {
             if (params[key] === undefined) {
                 delete params[key];
             }
         });
-        
-        console.log('AFTER cleanup - params:', params);
-        console.log('AFTER cleanup - params.pegi:', params.pegi);
-        console.log('AFTER cleanup - has pegi?', 'pegi' in params);
-        
+
         const response = await api.get('/games', { params });
 
-    return response.data;
+        return response.data;
     } catch (error: any) {
         console.error('Error in getGames:', error);
 
@@ -257,14 +257,13 @@ export interface FilterStats {
     genres: { id: number; name: string; count: number }[];
     platforms: { id: number; name: string; count: number }[];
     engines: { id: number; name: string; count: number }[];
-    pegi?: { id: number; name: string; count: number }[];
 }
 
 export const getFilterStats = async (retryCount = 0): Promise<FilterStats> => {
-    const maxRetries = 2; 
+    const maxRetries = 2;
     const baseDelay = 2000; // 2 секунды базовая задержка
 
-    try { 
+    try {
         const response = await api.get('/filters/stats', {
             timeout: 120000 // 120 секунд (2 минуты)
         });
@@ -277,7 +276,7 @@ export const getFilterStats = async (retryCount = 0): Promise<FilterStats> => {
         return data;
     } catch (error: any) {
         if (error.response?.status === 429 && retryCount < maxRetries) {
-            const delayMs = baseDelay * Math.pow(2, retryCount); 
+            const delayMs = baseDelay * Math.pow(2, retryCount);
             console.log(`Filter stats rate limit exceeded. Retrying in ${delayMs}ms... (attempt ${retryCount + 1}/${maxRetries})`);
             await delay(delayMs);
             return getFilterStats(retryCount + 1);
@@ -329,7 +328,7 @@ export const logout = async () => {
 // получение текущего пользователя
 export const getMe = async () => {
     try {
-       
+
         const response = await api.get('/auth/me', {
             withCredentials: true,
             validateStatus: (status) => {
@@ -364,6 +363,21 @@ export const getFavorites = async (): Promise<number[]> => {
     return response.data.gameIds;
 };
 
+export const getGamesBulk = async (ids: number[]): Promise<Game[]> => {
+    const response = await api.post('/games/bulk', { ids });
+    return response.data.games || [];
+};
+
+export const getPopularGames = async (limit = 20): Promise<Game[]> => {
+    const response = await api.get('/games/popular', { params: { limit } });
+    return response.data;
+};
+
+export const getUpcomingGames = async (limit = 12): Promise<Game[]> => {
+    const response = await api.get('/games/upcoming', { params: { limit } });
+    return response.data;
+};
+
 export const addFavorite = async (gameId: number) => {
     const response = await api.post(`/favorites/${gameId}`);
     return response.data;
@@ -376,7 +390,7 @@ export const removeFavorite = async (gameId: number) => {
 
 export const checkFavorite = async (gameId: number): Promise<boolean> => {
     const response = await api.get(`/favorites/${gameId}/check`);
-    return response.data.favorited;
+    return response.data.isFavorite;
 };
 
 // Google OAuth
@@ -390,5 +404,46 @@ export const googleAuthCallback = async (code: string) => {
     const response = await api.post('/auth/google/callback', { code, redirectUri }, {
         withCredentials: true
     });
+    return response.data;
+};
+
+// Комментарии к играм
+export interface Comment {
+    id: number;
+    game_id: number;
+    comment_text: string;
+    created_at: string;
+    updated_at: string;
+    user_id: number;
+    user_name: string;
+    user_email: string;
+}
+
+export const getGameComments = async (gameId: number): Promise<Comment[]> => {
+    const response = await api.get(`/comments/game/${gameId}`);
+    return response.data.comments;
+};
+
+export const createGameComment = async (gameId: number, text: string): Promise<void> => {
+    await api.post(`/comments`, { gameId, text });
+};
+
+export const updateComment = async (commentId: number, text: string): Promise<Comment> => {
+    const response = await api.put(`/comments/${commentId}`, { text });
+    return response.data;
+};
+
+export const deleteComment = async (commentId: number) => {
+    const response = await api.delete(`/comments/${commentId}`);
+    return response.data;
+};
+
+export const getUserComments = async (): Promise<Comment[]> => {
+    const response = await api.get('/comments/user/my-comments');
+    return response.data.comments;
+};
+
+export const deleteAccount = async (password: string) => {
+    const response = await api.post('/auth/delete-account', { password });
     return response.data;
 };

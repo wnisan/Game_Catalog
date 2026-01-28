@@ -5,7 +5,7 @@ import { api } from '../services/api';
 import './UserPage.css';
 
 const UserPage: React.FC = () => {
-    const { user, refreshUser, isAuthenticated } = useAuth();
+    const { user, refreshUser, isAuthenticated, logout } = useAuth();
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [currentPassword, setCurrentPassword] = useState('');
@@ -17,6 +17,13 @@ const UserPage: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [showDeleteForm, setShowDeleteForm] = useState(false);
+    const [deletePassword, setDeletePassword] = useState('');
+    const [deleteConfirmPassword, setDeleteConfirmPassword] = useState('');
+    const [showDeletePassword, setShowDeletePassword] = useState(false);
+    const [showDeleteConfirmPassword, setShowDeleteConfirmPassword] = useState(false);
+    const [deleteError, setDeleteError] = useState('');
+    const [deleteSuccess, setDeleteSuccess] = useState('');
 
     useEffect(() => {
         if (user) {
@@ -298,6 +305,7 @@ const UserPage: React.FC = () => {
                             </div>
                         )}
 
+                        <div className="user-page__form-actions">
                         <button
                             type="submit"
                             className="user-page__submit-btn"
@@ -305,7 +313,183 @@ const UserPage: React.FC = () => {
                         >
                             {isLoading ? 'Saving...' : 'Save Changes'}
                         </button>
+                            <button
+                                type="button"
+                                className="user-page__delete-account-btn"
+                                onClick={() => setShowDeleteForm(true)}
+                                disabled={isLoading}
+                            >
+                                Delete Account
+                            </button>
+                        </div>
                     </form>
+
+                    {showDeleteForm && (
+                        <div className="user-page__delete-section">
+                            <h2 className="user-page__delete-title">Delete Account</h2>
+                            <div className="user-page__form-group">
+                                <label htmlFor="deleteName" className="user-page__label">
+                                    Name
+                                </label>
+                                <input
+                                    id="deleteName"
+                                    type="text"
+                                    className="user-page__input"
+                                    value={name}
+                                    disabled
+                                />
+                            </div>
+                            <div className="user-page__form-group">
+                                <label htmlFor="deleteEmail" className="user-page__label">
+                                    Email
+                                </label>
+                                <input
+                                    id="deleteEmail"
+                                    type="email"
+                                    className="user-page__input"
+                                    value={email}
+                                    disabled
+                                />
+                            </div>
+                            <div className="user-page__form-group">
+                                <label htmlFor="deletePassword" className="user-page__label">
+                                    Password
+                                </label>
+                                <div className="user-page__input-wrapper">
+                                    <input
+                                        id="deletePassword"
+                                        type={showDeletePassword ? 'text' : 'password'}
+                                        className="user-page__input"
+                                        value={deletePassword}
+                                        onChange={(e) => {
+                                            setDeletePassword(e.target.value);
+                                            setDeleteError('');
+                                            setDeleteSuccess('');
+                                        }}
+                                        placeholder="Enter your password"
+                                        disabled={isLoading}
+                                    />
+                                    <button
+                                        type="button"
+                                        className="user-page__password-toggle"
+                                        onClick={() => setShowDeletePassword(!showDeletePassword)}
+                                        aria-label={showDeletePassword ? 'Hide password' : 'Show password'}
+                                        tabIndex={0}
+                                    >
+                                        {showDeletePassword ? (
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                                                <line x1="1" y1="1" x2="23" y2="23"/>
+                                            </svg>
+                                        ) : (
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                                <circle cx="12" cy="12" r="3"/>
+                                            </svg>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="user-page__form-group">
+                                <label htmlFor="deleteConfirmPassword" className="user-page__label">
+                                    Confirm Password
+                                </label>
+                                <div className="user-page__input-wrapper">
+                                    <input
+                                        id="deleteConfirmPassword"
+                                        type={showDeleteConfirmPassword ? 'text' : 'password'}
+                                        className="user-page__input"
+                                        value={deleteConfirmPassword}
+                                        onChange={(e) => {
+                                            setDeleteConfirmPassword(e.target.value);
+                                            setDeleteError('');
+                                            setDeleteSuccess('');
+                                        }}
+                                        placeholder="Confirm your password"
+                                        disabled={isLoading}
+                                    />
+                                    <button
+                                        type="button"
+                                        className="user-page__password-toggle"
+                                        onClick={() => setShowDeleteConfirmPassword(!showDeleteConfirmPassword)}
+                                        aria-label={showDeleteConfirmPassword ? 'Hide password' : 'Show password'}
+                                        tabIndex={0}
+                                    >
+                                        {showDeleteConfirmPassword ? (
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                                                <line x1="1" y1="1" x2="23" y2="23"/>
+                                            </svg>
+                                        ) : (
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                                <circle cx="12" cy="12" r="3"/>
+                                            </svg>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                            {deleteError && (
+                                <div className="user-page__error">
+                                    {deleteError}
+                                </div>
+                            )}
+                            {deleteSuccess && (
+                                <div className="user-page__success">
+                                    {deleteSuccess}
+                                </div>
+                            )}
+                            <div className="user-page__delete-actions">
+                                <button
+                                    type="button"
+                                    className="user-page__cancel-delete-btn"
+                                    onClick={() => {
+                                        setShowDeleteForm(false);
+                                        setDeletePassword('');
+                                        setDeleteConfirmPassword('');
+                                        setDeleteError('');
+                                        setDeleteSuccess('');
+                                    }}
+                                    disabled={isLoading}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    className="user-page__delete-btn"
+                                    disabled={isLoading || !deletePassword || deletePassword !== deleteConfirmPassword}
+                                    onClick={async () => {
+                                        if (deletePassword !== deleteConfirmPassword) {
+                                            setDeleteError('Passwords do not match');
+                                            return;
+                                        }
+                                        const confirmed = window.confirm('Deleting your account will remove your profile, favorites and comments. This action cannot be undone. Are you sure?');
+                                        if (!confirmed) {
+                                            return;
+                                        }
+                                        try {
+                                            setDeleteError('');
+                                            setDeleteSuccess('');
+                                            const { deleteAccount } = await import('../services/api');
+                                            await deleteAccount(deletePassword);
+                                            setDeleteSuccess('Account deleted successfully');
+                                            await logout();
+                                        } catch (err: any) {
+                                            if (err.response?.data?.error) {
+                                                setDeleteError(err.response.data.error);
+                                            } else if (err.message) {
+                                                setDeleteError(err.message);
+                                            } else {
+                                                setDeleteError('Failed to delete account. Please try again.');
+                                            }
+                                        }
+                                    }}
+                                >
+                                    Delete Account
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

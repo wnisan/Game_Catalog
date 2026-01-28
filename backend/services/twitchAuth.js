@@ -12,37 +12,48 @@ class TwitchAuthService {
         this.tokenExpires = null;
     }
 
-     async getAccessToken() {
+    async getAccessToken() {
         if (this.accessToken && this.tokenExpires > Date.now()) {
             return this.accessToken;
         }
 
-    try {
-        const response = await axios.post(
-            'https://id.twitch.tv/oauth2/token',
-            null, // Тело запроса
-            {
-                params: {
-                    client_id: this.clientId,
-                    client_secret: this.clientSecret,
-                    grant_type: 'client_credentials' // тип авторизации
+        const maxRetries = 3;
+        let lastError = null;
+
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                const response = await axios.post(
+                    'https://id.twitch.tv/oauth2/token',
+                    null,
+                    {
+                        params: {
+                            client_id: this.clientId,
+                            client_secret: this.clientSecret,
+                            grant_type: 'client_credentials'
+                        },
+                        timeout: 8000
+                    }
+                );
+
+                const { access_token, expires_in } = response.data;
+
+                this.accessToken = access_token;
+                this.tokenExpires = Date.now() + (expires_in * 1000);
+
+                return this.accessToken;
+            } catch (error) {
+                lastError = error;
+                if (attempt < maxRetries - 1) {
+                    const delay = 500 * Math.pow(2, attempt);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    continue;
                 }
             }
-        );
+        }
 
-        const { access_token, expires_in } = response.data;
-
-        this.accessToken = access_token;
-        this.tokenExpires = Date.now() + (expires_in * 1000); // через 2 месяца токен умрет
-
-        console.log('Twitch access token received!');
-        return this.accessToken;
+        console.log('Error getting token!', lastError?.response?.data || lastError?.message);
+        throw lastError;
     }
-    catch (error) {
-        console.log('Error getting token!', error.response?.data || error.message);
-        throw error;
-    }
-}
    async getAuthHeaders() {
         const token = await this.getAccessToken();
         return {
