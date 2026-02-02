@@ -18,79 +18,79 @@ function App() {
     <Router>
       <AuthProvider>
         <FiltersProvider>
-        <div className="App">
-          <Routes>
-            <Route
-              path="/auth"
-              element={
-                <AuthPageWrapper />
-              }
-            />
-            <Route
-              path="/signin-callback"
-              element={<SignInCallback />}
-            />
-            <Route
-              path="/"
-              element={
-                <PublicLayout>
-                  <ExplorePage />
-                </PublicLayout>
-              }
-            />
-
-            <Route
-              path="/explore"
-              element={
-                <PublicLayout>
-                  <ExplorePage />
-                </PublicLayout>
-              }
-            />
-
-            <Route
-              path="/home"
-              element={
-                <PublicLayout>
+          <div className="App">
+            <Routes>
+              <Route
+                path="/auth"
+                element={
+                  <AuthPageWrapper />
+                }
+              />
+              <Route
+                path="/signin-callback"
+                element={<SignInCallback />}
+              />
+              <Route
+                path="/"
+                element={
+                  <PublicLayout>
                     <ExplorePage />
-                </PublicLayout>
-              }
-            />
+                  </PublicLayout>
+                }
+              />
 
-            <Route
-              path="/my-games"
-              element={
-                <ProtectedRoute>
-                  <ProtectedLayout>
-                    <UserGamesPage />
-                  </ProtectedLayout>
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/explore"
+                element={
+                  <PublicLayout>
+                    <ExplorePage />
+                  </PublicLayout>
+                }
+              />
 
-            <Route
-              path="/user"
-              element={
-                <ProtectedRoute>
-                  <ProtectedLayout>
-                    <UserPage />
-                  </ProtectedLayout>
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/home"
+                element={
+                  <PublicLayout>
+                    <ExplorePage />
+                  </PublicLayout>
+                }
+              />
 
-            <Route
-              path="/game/:slug"
-              element={
-                <PublicLayout>
-                  <GameDetailPage />
-                </PublicLayout>
-              }
-            />
+              <Route
+                path="/my-games"
+                element={
+                  <ProtectedRoute>
+                    <ProtectedLayout>
+                      <UserGamesPage />
+                    </ProtectedLayout>
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </div>
+              <Route
+                path="/user"
+                element={
+                  <ProtectedRoute>
+                    <ProtectedLayout>
+                      <UserPage />
+                    </ProtectedLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/game/:slug"
+                element={
+                  <PublicLayout>
+                    <GameDetailPage />
+                  </PublicLayout>
+                }
+              />
+
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
         </FiltersProvider>
       </AuthProvider>
     </Router>
@@ -108,6 +108,24 @@ const AuthPageWrapper: React.FC = () => {
 };
 
 const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+        flexDirection: 'column',
+        gap: '16px'
+      }}>
+        <LoadingSpinner />
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
   return (
     <>
       <ScrollToTop />
@@ -157,8 +175,6 @@ const SignInCallback: React.FC = () => {
         const { googleAuthCallback } = await import('./services/api');
         const response = await googleAuthCallback(code);
 
-        console.log('Google OAuth callback response:', response);
-
         if (!response || !response.user) {
           setError('Invalid response from server');
           setIsProcessing(false);
@@ -167,7 +183,7 @@ const SignInCallback: React.FC = () => {
         }
 
         await new Promise(resolve => setTimeout(resolve, 100));
-        
+
         window.location.href = '/';
       } catch (err: any) {
         console.error('Google auth error:', err);

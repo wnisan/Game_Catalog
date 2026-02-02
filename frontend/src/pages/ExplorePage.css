@@ -9,6 +9,7 @@
 .explore-page__header {
   text-align: center;
   margin-bottom: 32px;
+  min-height: 520px;
 }
 
 .explore-page__header h1 {
@@ -120,11 +121,18 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.explore-page__games-grid > * {
+.explore-page__games-grid>* {
   animation: fadeIn 0.3s ease-out;
 }
 
@@ -132,11 +140,11 @@
   .explore-page {
     padding: 16px;
   }
-  
+
   .explore-page__header h1 {
     font-size: 2rem;
   }
-  
+
   .explore-page__games-grid {
     grid-template-columns: 1fr;
     gap: 16px;

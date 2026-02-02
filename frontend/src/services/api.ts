@@ -292,10 +292,21 @@ export const getFilterStats = async (retryCount = 0): Promise<FilterStats> => {
 
 // Аутентификация
 export const register = async (email: string, name: string, password: string) => {
-    const response = await api.post('/auth/register', { email, name, password }, {
-        withCredentials: true
-    });
-    return response.data; // без пароля
+    try {
+        const response = await api.post('/auth/register', { email, name, password }, {
+            withCredentials: true
+        });
+        return response.data;
+    } catch (error: any) {
+        if (error.response?.status === 400) {
+            const serverMessage = error.response?.data?.error || '';
+            if (serverMessage.includes('already exists')) {
+                throw new Error('An account with this email is already registered.');
+            }
+            throw new Error(serverMessage || 'Registration error');
+        }
+        throw error;
+    }
 };
 
 export const login = async (email: string, password: string) => {
@@ -305,15 +316,16 @@ export const login = async (email: string, password: string) => {
         });
         return response.data;
     } catch (error: any) {
-
         if (error.response?.status === 401) {
             const serverMessage = error.response?.data?.error || '';
-            if (serverMessage && serverMessage !== 'Access token required') {
-                throw new Error(serverMessage);
+            if (serverMessage.includes('Invalid email or password')) {
+                throw new Error('Incorrect email or password');
             }
-            throw new Error('Password is incorrect');
+            if (serverMessage.includes('Google authentication')) {
+                throw new Error('This account uses Google Sign-In. Please sign in with Google.');
+            }
+            throw new Error('Incorrect login details');
         }
-
         throw error;
     }
 };

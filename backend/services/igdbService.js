@@ -9,6 +9,39 @@ class IGDBService {
     constructor() {
         this.baseURL = 'https://api.igdb.com/v4';
         this.gameCache = new Map();
+        this.maxCacheSize = 1000;
+        this.cacheCleanupInterval = 30 * 60 * 1000;
+
+        setInterval(() => {
+            this.cleanupCache();
+        }, this.cacheCleanupInterval);
+    }
+
+    cleanupCache() {
+        const now = Date.now();
+        let deletedCount = 0;
+
+        for (const [key, item] of this.gameCache.entries()) {
+            if (item.expiresAt <= now) {
+                this.gameCache.delete(key);
+                deletedCount++;
+            }
+        }
+
+        if (this.gameCache.size > this.maxCacheSize) {
+            const entries = Array.from(this.gameCache.entries());
+            entries.sort((a, b) => a[1].expiresAt - b[1].expiresAt);
+
+            const toDelete = this.gameCache.size - this.maxCacheSize;
+            for (let i = 0; i < toDelete; i++) {
+                this.gameCache.delete(entries[i][0]);
+                deletedCount++;
+            }
+        }
+
+        if (deletedCount > 0) {
+            console.log(`Cache cleanup: removed ${deletedCount} expired/old entries, ${this.gameCache.size} remaining`);
+        }
     }
 
     getCachedGame(cacheKey) {
@@ -22,6 +55,10 @@ class IGDBService {
     }
 
     setCachedGame(cacheKey, value, ttlMs = 10 * 60 * 1000) {
+        if (this.gameCache.size >= this.maxCacheSize) {
+            const oldestKey = this.gameCache.keys().next().value;
+            this.gameCache.delete(oldestKey);
+        }
         this.gameCache.set(cacheKey, { value, expiresAt: Date.now() + ttlMs });
     }
 
@@ -43,7 +80,8 @@ class IGDBService {
         platforms,
         engines,
         releaseDateMin,
-        releaseDateMax
+        releaseDateMax,
+        sortBy
     }) {
         const headers = await twitchAuth.getAuthHeaders();
         const where = [];
@@ -183,9 +221,7 @@ class IGDBService {
             query += ` sort ${sortMap[sortBy] || 'first_release_date desc'};`;
         }
 
-        const hasRatingFilter = (ratingMin !== undefined && ratingMin !== null && !isNaN(Number(ratingMin))) ||
-            (ratingMax !== undefined && ratingMax !== null && !isNaN(Number(ratingMax)));
-        const actualLimit = hasRatingFilter ? 500 : limit;
+        const actualLimit = limit;
 
         query += ` limit ${actualLimit};`;
         query += ` offset ${offset};`;
@@ -380,13 +416,14 @@ class IGDBService {
 
         throw lastError;
     }
-    async getGameById(id) {
+    async getGameByIdOrSlug(idOrSlug, isSlug = false) {
         const headers = await twitchAuth.getAuthHeaders();
-        const cacheKey = `id:${id}`;
+        const cacheKey = isSlug ? `slug:${idOrSlug}` : `id:${idOrSlug}`;
         const cached = this.getCachedGame(cacheKey);
         if (cached) return cached;
 
-        const query = `fields id,name,slug,summary,storyline,status,game_status,game_type,created_at,updated_at,checksum,url,external_games,first_release_date,release_dates,genres.name,platforms.name,game_engines.name,game_modes.name,themes.name,keywords.name,tags,player_perspectives.name,hypes,alternative_names.name,artworks.image_id,videos.video_id,cover.image_id,cover.url,screenshots.image_id,websites.url,websites.category,similar_games,language_supports.language.name,language_supports.language_support_type,rating; where id = ${id};`;
+        const whereClause = isSlug ? `slug = "${idOrSlug}"` : `id = ${idOrSlug}`;
+        const query = `fields id,name,slug,summary,storyline,status,game_status,game_type,created_at,updated_at,checksum,url,external_games,first_release_date,release_dates,genres.name,platforms.name,game_engines.name,game_modes.name,themes.name,keywords.name,tags,player_perspectives.name,hypes,alternative_names.name,artworks.image_id,videos.video_id,cover.image_id,cover.url,screenshots.image_id,websites.url,websites.category,similar_games,language_supports.language.name,language_supports.language_support_type,rating; where ${whereClause};`;
 
         try {
             const response = await axios.post(
@@ -493,7 +530,7 @@ class IGDBService {
                 const similarGameIds = game.similar_games.map(id => typeof id === 'number' ? id : (id && id.id ? id.id : id)).filter(Boolean);
                 if (similarGameIds.length > 0) {
                     try {
-                        const similarGamesQuery = `fields id,name,slug,cover.image_id,rating; where id = (${similarGameIds.slice(0, 10).join(',')});`;
+                        const similarGamesQuery = `fields id,name,slug,cover.image_id,rating,genres.name; where id = (${similarGameIds.slice(0, 10).join(',')});`;
                         const similarGamesResponse = await axios.post(
                             `${this.baseURL}/games`,
                             similarGamesQuery,
@@ -504,7 +541,8 @@ class IGDBService {
                             name: g.name,
                             slug: g.slug,
                             cover: g.cover ? { url: `https://images.igdb.com/igdb/image/upload/t_cover_big/${g.cover.image_id}.jpg` } : null,
-                            rating: g.rating
+                            rating: g.rating,
+                            genres: g.genres
                         }));
                     } catch (error) {
                         console.error('Error fetching similar games:', error.message);
@@ -517,150 +555,17 @@ class IGDBService {
             this.setCachedGame(cacheKey, normalized);
             return normalized;
         } catch (error) {
-            console.error('Error getting game by ID:', error.response?.data || error.message);
+            console.error(`Error getting game by ${isSlug ? 'slug' : 'ID'}:`, error.response?.data || error.message);
             throw error;
         }
     }
+
+    async getGameById(id) {
+        return this.getGameByIdOrSlug(id, false);
+    }
+
     async getGameBySlug(slug) {
-        const headers = await twitchAuth.getAuthHeaders();
-        const cacheKey = `slug:${slug}`;
-        const cached = this.getCachedGame(cacheKey);
-        if (cached) return cached;
-
-        const query = `fields id,name,slug,summary,storyline,status,game_status,game_type,created_at,updated_at,checksum,url,external_games,first_release_date,release_dates,genres.name,platforms.name,game_engines.name,game_modes.name,themes.name,keywords.name,tags,player_perspectives.name,hypes,alternative_names.name,artworks.image_id,videos.video_id,cover.image_id,cover.url,screenshots.image_id,websites.url,websites.category,similar_games,language_supports.language.name,language_supports.language_support_type,rating; where slug = "${slug}";`;
-
-        try {
-            const response = await axios.post(
-                `${this.baseURL}/games`,
-                query,
-                { headers }
-            );
-
-            if (response.data.length === 0) {
-                throw new Error('Game not found');
-            }
-
-            const game = response.data[0];
-
-            if (game.websites) {
-                if (Array.isArray(game.websites)) {
-                    const needsExpansion = game.websites.some(w => {
-                        if (typeof w === 'number') return true;
-                        if (w && w.id && !w.category) return true;
-                        return false;
-                    });
-
-                    if (needsExpansion) {
-                        const websiteIds = new Set();
-                        game.websites.forEach(w => {
-                            const id = typeof w === 'number' ? w : (w && w.id ? w.id : null);
-                            if (id) websiteIds.add(id);
-                        });
-
-                        if (websiteIds.size > 0) {
-                            try {
-                                const websitesQuery = `fields id, url, category; where id = (${Array.from(websiteIds).join(',')});`;
-                                const websitesResponse = await axios.post(
-                                    `${this.baseURL}/websites`,
-                                    websitesQuery,
-                                    { headers }
-                                );
-
-                                const websitesMap = new Map();
-                                websitesResponse.data.forEach(w => {
-                                    websitesMap.set(w.id, w);
-                                });
-
-                                const expandedWebsites = [];
-                                game.websites.forEach(w => {
-                                    const id = typeof w === 'number' ? w : (w && w.id ? w.id : null);
-                                    if (id && websitesMap.has(id)) {
-                                        expandedWebsites.push(websitesMap.get(id));
-                                    } else if (w && typeof w === 'object' && w.url) {
-                                        expandedWebsites.push(w);
-                                    }
-                                });
-                                game.websites = expandedWebsites;
-                            } catch (error) {
-                                console.error('Error expanding websites:', error.message);
-                                game.websites = game.websites.filter(w => w && typeof w === 'object' && w.url);
-                            }
-                        }
-                    } else {
-                        game.websites = game.websites.filter(w => w && typeof w === 'object' && w.url);
-                    }
-                } else if (typeof game.websites === 'object') {
-                    if (!game.websites.category && game.websites.id) {
-                        try {
-                            const websitesQuery = `fields id, url, category; where id = ${game.websites.id};`;
-                            const websitesResponse = await axios.post(
-                                `${this.baseURL}/websites`,
-                                websitesQuery,
-                                { headers }
-                            );
-                            if (websitesResponse.data.length > 0) {
-                                game.websites = [websitesResponse.data[0]];
-                            } else {
-                                game.websites = [];
-                            }
-                        } catch (error) {
-                            console.error('Error expanding website:', error.message);
-                            game.websites = [];
-                        }
-                    } else if (game.websites.url && game.websites.category) {
-                        game.websites = [game.websites];
-                    } else {
-                        game.websites = [];
-                    }
-                }
-            }
-
-            if (game.screenshots && Array.isArray(game.screenshots)) {
-                const screenshotIds = new Set();
-                game.screenshots.forEach(s => {
-                    const id = typeof s === 'number' ? s : (s && s.image_id ? s.image_id : (s && s.id ? s.id : null));
-                    if (id) screenshotIds.add(id);
-                });
-
-                if (screenshotIds.size > 0) {
-                    game.screenshots = Array.from(screenshotIds).map(id => ({
-                        image_id: typeof id === 'number' ? id : (id && id.image_id ? id.image_id : id),
-                        url: `https://images.igdb.com/igdb/image/upload/t_screenshot_big/${typeof id === 'number' ? id : (id && id.image_id ? id.image_id : id)}.jpg`
-                    }));
-                }
-            }
-
-            if (game.similar_games && Array.isArray(game.similar_games)) {
-                const similarGameIds = game.similar_games.map(id => typeof id === 'number' ? id : (id && id.id ? id.id : id)).filter(Boolean);
-                if (similarGameIds.length > 0) {
-                    try {
-                        const similarGamesQuery = `fields id,name,slug,cover.image_id,rating; where id = (${similarGameIds.slice(0, 10).join(',')});`;
-                        const similarGamesResponse = await axios.post(
-                            `${this.baseURL}/games`,
-                            similarGamesQuery,
-                            { headers }
-                        );
-                        game.similar_games = similarGamesResponse.data.map(g => ({
-                            id: g.id,
-                            name: g.name,
-                            slug: g.slug,
-                            cover: g.cover ? { url: `https://images.igdb.com/igdb/image/upload/t_cover_big/${g.cover.image_id}.jpg` } : null,
-                            rating: g.rating
-                        }));
-                    } catch (error) {
-                        console.error('Error fetching similar games:', error.message);
-                        game.similar_games = [];
-                    }
-                }
-            }
-
-            const normalized = this.normalizeGame(game);
-            this.setCachedGame(cacheKey, normalized);
-            return normalized;
-        } catch (error) {
-            console.error('Error getting game by slug:', error.response?.data || error.message);
-            throw error;
-        }
+        return this.getGameByIdOrSlug(slug, true);
     }
 
     normalizeGame(game) {
@@ -761,20 +666,48 @@ class IGDBService {
     }
 
     async getPopularGames({ limit = 20 } = {}) {
-        const headers = await twitchAuth.getAuthHeaders();
-        const actualLimit = Math.min(Number(limit) || 20, 50);
-        const query = `fields id,name,slug,first_release_date,genres.name,platforms.name,game_engines.name,game_modes.name,themes.name,keywords.name,tags,player_perspectives.name,hypes,artworks.image_id,videos.video_id,cover.image_id,cover.url,rating; where cover != null & rating != null; sort rating desc; limit ${actualLimit};`;
-        const response = await axios.post(`${this.baseURL}/games`, query, { headers, timeout: 10000 });
-        return (response.data || []).map(g => this.normalizeGame(g));
+        try {
+            const headers = await twitchAuth.getAuthHeaders();
+            const actualLimit = Math.min(Number(limit) || 20, 50);
+            const query = `fields id,name,slug,first_release_date,genres.name,platforms.name,game_engines.name,game_modes.name,themes.name,keywords.name,tags,player_perspectives.name,hypes,artworks.image_id,videos.video_id,cover.image_id,cover.url,rating; where cover != null & rating != null; sort rating desc; limit ${actualLimit};`;
+
+            const response = await axios.post(`${this.baseURL}/games`, query, {
+                headers,
+                timeout: 10000
+            });
+
+            return (response.data || []).map(g => this.normalizeGame(g));
+        } catch (error) {
+            console.error('Error in getPopularGames:', error.response?.data || error.message);
+            if (error.response?.status === 429) {
+                console.log('Rate limit exceeded for popular games, returning empty array');
+                return [];
+            }
+            throw error;
+        }
     }
 
     async getUpcomingGames({ limit = 12 } = {}) {
-        const headers = await twitchAuth.getAuthHeaders();
-        const actualLimit = Math.min(Number(limit) || 12, 50);
-        const now = Math.floor(Date.now() / 1000);
-        const query = `fields id,name,slug,first_release_date,genres.name,platforms.name,game_engines.name,game_modes.name,themes.name,keywords.name,tags,player_perspectives.name,hypes,artworks.image_id,videos.video_id,cover.image_id,cover.url,rating; where first_release_date != null & first_release_date > ${now}; sort first_release_date asc; limit ${actualLimit};`;
-        const response = await axios.post(`${this.baseURL}/games`, query, { headers, timeout: 10000 });
-        return (response.data || []).map(g => this.normalizeGame(g));
+        try {
+            const headers = await twitchAuth.getAuthHeaders();
+            const actualLimit = Math.min(Number(limit) || 12, 50);
+            const now = Math.floor(Date.now() / 1000);
+            const query = `fields id,name,slug,first_release_date,genres.name,platforms.name,game_engines.name,game_modes.name,themes.name,keywords.name,tags,player_perspectives.name,hypes,artworks.image_id,videos.video_id,cover.image_id,cover.url,rating; where first_release_date != null & first_release_date > ${now}; sort first_release_date asc; limit ${actualLimit};`;
+
+            const response = await axios.post(`${this.baseURL}/games`, query, {
+                headers,
+                timeout: 10000
+            });
+
+            return (response.data || []).map(g => this.normalizeGame(g));
+        } catch (error) {
+            console.error('Error in getUpcomingGames:', error.response?.data || error.message);
+            if (error.response?.status === 429) {
+                console.log('Rate limit exceeded for upcoming games, returning empty array');
+                return [];
+            }
+            throw error;
+        }
     }
 
     buildRatingWhere(ratingMin, ratingMax, log = false) {

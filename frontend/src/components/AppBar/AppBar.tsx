@@ -26,94 +26,104 @@ const AppBar: React.FC = () => {
             <div className="app-bar__container">
                 {isAuthenticated ? (
                     <nav className="app-bar__nav" aria-label="Main navigation">
-                        <ul className="app-bar__nav-list" role="list">
-                            <li className="app-bar__nav-item" role="listitem">
-                                <Link 
-                                    to="/explore" 
-                                    className="app-bar__nav-link"
-                                    aria-label="Explore games catalog"
-                                >
-                                    Explore
-                                </Link>
-                            </li>
-                            
-                            {isExplorePage && (
+                        <div className="app-bar__nav-left">
+                            <ul className="app-bar__nav-list" role="list">
                                 <li className="app-bar__nav-item" role="listitem">
-                                    <button
-                                        className="app-bar__filter-btn"
-                                        onClick={handleToggleFilters}
-                                        type="button"
-                                        aria-label="Toggle filters panel"
+                                    <Link
+                                        to="/explore"
+                                        className="app-bar__nav-link"
+                                        aria-label="Explore games catalog"
                                     >
-                                        Filters
-                                        {activeFiltersCount > 0 && (
-                                            <span className="app-bar__filter-badge">{activeFiltersCount}</span>
-                                        )}
+                                        Explore
+                                    </Link>
+                                </li>
+
+                                {isExplorePage && (
+                                    <li className="app-bar__nav-item" role="listitem">
+                                        <button
+                                            className="app-bar__filter-btn"
+                                            onClick={handleToggleFilters}
+                                            type="button"
+                                            aria-label="Toggle filters panel"
+                                        >
+                                            Filters
+                                            {activeFiltersCount > 0 && (
+                                                <span className="app-bar__filter-badge">{activeFiltersCount}</span>
+                                            )}
+                                        </button>
+                                    </li>
+                                )}
+
+                                <li className="app-bar__nav-item" role="listitem">
+                                    <Link
+                                        to="/my-games"
+                                        className="app-bar__nav-link"
+                                        aria-label="View my favorite games"
+                                    >
+                                        My Games
+                                    </Link>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div className="app-bar__nav-right">
+                            <ul className="app-bar__nav-list" role="list">
+                                <li className="app-bar__nav-item" role="listitem">
+                                    <Link
+                                        to="/user"
+                                        className="app-bar__nav-link"
+                                        aria-label="View and edit user profile"
+                                    >
+                                        User Page
+                                    </Link>
+                                </li>
+
+                                <li className="app-bar__nav-item app-bar__user" role="listitem">
+                                    <button
+                                        className="app-bar__logout-btn"
+                                        onClick={handleLogout}
+                                        type="button"
+                                        aria-label="Logout from account"
+                                    >
+                                        Logout
                                     </button>
                                 </li>
-                            )}
-
-                            <li className="app-bar__nav-item" role="listitem">
-                                <Link 
-                                    to="/my-games" 
-                                    className="app-bar__nav-link"
-                                    aria-label="View my favorite games"
-                                >
-                                    My Games
-                                </Link>
-                            </li>
-
-                            <li className="app-bar__nav-item" role="listitem">
-                                <Link 
-                                    to="/user" 
-                                    className="app-bar__nav-link"
-                                    aria-label="View and edit user profile"
-                                >
-                                    User Page
-                                </Link>
-                            </li>
-
-                            <li className="app-bar__nav-item app-bar__user" role="listitem">
-                                <button
-                                    className="app-bar__logout-btn"
-                                    onClick={handleLogout}
-                                    type="button"
-                                    aria-label="Logout from account"
-                                >
-                                    Logout
-                                </button>
-                            </li>
-                        </ul>
+                            </ul>
+                        </div>
                     </nav>
                 ) : (
                     <div className="app-bar__auth">
-                        <Link 
-                            to="/explore" 
-                            className="app-bar__nav-link"
-                            aria-label="Explore games catalog"
-                        >
-                            Explore
-                        </Link>
-                        {isExplorePage && (
-                            <button
-                                className="app-bar__filter-btn-secondary"
-                                onClick={handleToggleFilters}
-                                type="button"
-                                aria-label="Toggle filters panel"
+                        <div className="app-bar__auth-left">
+                            <Link
+                                to="/explore"
+                                className="app-bar__nav-link"
+                                aria-label="Explore games catalog"
                             >
-                                Filters
-                                {activeFiltersCount > 0 && (
-                                    <span className="app-bar__filter-badge">{activeFiltersCount}</span>
-                                )}
-                            </button>
-                        )}
-                        <Link 
-                            to="/auth" 
-                            className="app-bar__login-btn"
-                            aria-label="Go to login page"
-                        >
-                            Sign In / Sign Up
-                        </Link>
+                                Explore
+                            </Link>
+                            {isExplorePage && (
+                                <button
+                                    className="app-bar__filter-btn-secondary"
+                                    onClick={handleToggleFilters}
+                                    type="button"
+                                    aria-label="Toggle filters panel"
+                                >
+                                    Filters
+                                    {activeFiltersCount > 0 && (
+                                        <span className="app-bar__filter-badge">{activeFiltersCount}</span>
+                                    )}
+                                </button>
+                            )}
+                        </div>
+                        <div className="app-bar__auth-right">
+                            <Link
+                                to="/auth"
+                                className="app-bar__login-btn"
+                                aria-label="Go to login page"
+                            >
+                                Sign In / Sign Up
+                            </Link>
+                        </div>
                     </div>
                 )}
             </div>

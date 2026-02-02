@@ -5,8 +5,16 @@ import crypto from 'crypto'; // для хеширования
 
 dotenv.config();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'secret-key-change-in-production'; // изменить потом
-//const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || JWT_SECRET + '_refresh';
+const getEnvVar = (name) => {
+    const value = process.env[name];
+    if (value === undefined || value === '') {
+        throw new Error(`Expected env var ${name} to be defined`);
+    }
+    return value;
+};
+
+const JWT_SECRET = getEnvVar('JWT_SECRET');
+// const REFRESH_TOKEN_SECRET = getEnvVar('REFRESH_TOKEN_SECRET');
 
 // Access token (15 минут)
 export function generateAccessToken(userId) {

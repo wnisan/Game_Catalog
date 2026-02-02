@@ -9,6 +9,8 @@
   display: flex;
   flex-direction: row;
   height: 180px;
+  width: 100%;
+  max-width: 420px;
 }
 
 .game-card:hover {
@@ -35,9 +37,9 @@
 }
 
 .game-card__cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  width: 140px;
+  height: 180px;
+  object-fit: cover;
   object-position: center;
 }
 
@@ -158,6 +160,13 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   filter: grayscale(100%);
   color: #6e7681;
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.game-card__favorite.visible {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .game-card__favorite:hover {

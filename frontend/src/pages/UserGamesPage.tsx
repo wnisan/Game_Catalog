@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getFavorites, getUserComments, updateComment, deleteComment, type Game, type Comment } from '../services/api';
@@ -171,7 +171,7 @@ const UserGamesPage: React.FC = () => {
                     </div>
                     <div className="user-games-page__stat">
                         <div className="user-games-page__stat-value">
-                            {(() => {
+                            {useMemo(() => {
                                 const allGenres = favoriteGames
                                     .filter(g => g.genres && g.genres.length > 0)
                                     .flatMap(g => g.genres)
@@ -182,7 +182,7 @@ const UserGamesPage: React.FC = () => {
                                 );
 
                                 return uniqueGenreIds.size;
-                            })()}
+                            }, [favoriteGames])}
                         </div>
                         <div className="user-games-page__stat-label">Unique Genres</div>
                     </div>

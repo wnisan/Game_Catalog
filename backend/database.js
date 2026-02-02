@@ -84,6 +84,24 @@ export function initDatabase() {
         CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token ON refresh_tokens(token)
     `);
 
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS game_visits (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            game_id INTEGER NOT NULL,
+            visited_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    `);
+
+    db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_game_visits_user_id ON game_visits(user_id)
+    `);
+
+    db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_game_visits_game_id ON game_visits(game_id)
+    `);
+
     console.log('Database initialized');
 }
 
@@ -177,6 +195,11 @@ export function isFavorite(userId, gameId) {
 export function getFavoriteCount(userId) {
     const stmt = db.prepare('SELECT COUNT(*) as count FROM favorites WHERE user_id = ?');
     return stmt.get(userId).count;
+}
+
+export function getGameFavoriteCount(gameId) {
+    const stmt = db.prepare('SELECT COUNT(*) as count FROM favorites WHERE game_id = ?');
+    return stmt.get(gameId).count;
 }
 
 // Refresh токены
@@ -309,6 +332,28 @@ export function getCommentById(commentId) {
         WHERE gc.id = ?
     `);
     return stmt.get(commentId);
+}
+
+export function recordGameVisit(userId, gameId) {
+    if (userId) {
+        db.prepare('DELETE FROM game_visits WHERE user_id = ? AND game_id = ?').run(userId, gameId);
+        db.prepare('INSERT INTO game_visits (user_id, game_id) VALUES (?, ?)').run(userId, gameId);
+    } else {
+        db.prepare('INSERT INTO game_visits (game_id) VALUES (?)').run(gameId);
+    }
+}
+
+export function getRecentlyVisitedGames(userId, limit = 10) {
+    if (!userId) return [];
+    const stmt = db.prepare(`
+        SELECT game_id, MAX(visited_at) as last_visited
+        FROM game_visits 
+        WHERE user_id = ? 
+        GROUP BY game_id
+        ORDER BY last_visited DESC 
+        LIMIT ?
+    `);
+    return stmt.all(userId, limit).map(row => row.game_id);
 }
 
 initDatabase();

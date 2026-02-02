@@ -41,28 +41,22 @@ export const useInfiniteScroll = (
     // загрузка данных
     const loadMore = useCallback(async () => {
         if (isLoadingRef.current || !hasMoreRef.current) {
-            console.log('LoadMore blocked:', { isLoading: isLoadingRef.current, hasMore: hasMoreRef.current });
             return;
         }
 
-        console.log('Starting loadMore, page:', pageRef.current);
         setIsLoading(true);
         isLoadingRef.current = true;
 
         try {
             const currentPage = pageRef.current;
             const newItems = await fetchCallbackRef.current(currentPage);
-            console.log('Loaded items:', newItems.length);
 
             if (newItems.length === 0) {
-                console.log('No more items, setting hasMore to false');
                 setHasMore(false);
                 hasMoreRef.current = false;
             } else {
                 pageRef.current = currentPage + 1;
-                // Если получили меньше элементов, чем запрашивали, значит это последняя страница
                 if (newItems.length < 20) {
-                    console.log('Last page detected, setting hasMore to false');
                     setHasMore(false);
                     hasMoreRef.current = false;
                 }
@@ -99,47 +93,30 @@ export const useInfiniteScroll = (
         const timeoutId = setTimeout(() => {
             const sentinelElement = sentinelRef.current;
             if (!sentinelElement) {
-                console.log('Sentinel element not found after timeout');
                 return;
             }
 
-            // Отключаем предыдущий observer
             if (observerRef.current) {
                 observerRef.current.disconnect();
             }
 
-            // создаем новый
             const currentObserver = new IntersectionObserver(
                 (entries) => {
                     const [entry] = entries;
 
-                    console.log('IntersectionObserver triggered:', {
-                        isIntersecting: entry.isIntersecting,
-                        isLoading: isLoadingRef.current,
-                        hasMore: hasMoreRef.current,
-                        intersectionRatio: entry.intersectionRatio
-                    });
-
-                    // Проверяем через refs, чтобы избежать проблем с замыканиями
                     if (entry.isIntersecting && !isLoadingRef.current && hasMoreRef.current) {
-                        console.log('Loading more items...');
                         loadMore();
                     }
                 },
                 {
                     root: null,
                     rootMargin: `0px 0px ${rootMargin} 0px`,
-                    threshold: [0, 0.1, 0.5, 1.0] // проценты видимости элемента
+                    threshold: [0, 0.1, 0.5, 1.0]
                 }
             );
 
             observerRef.current = currentObserver;
             currentObserver.observe(sentinelElement);
-
-            console.log('IntersectionObserver created and observing sentinel element', {
-                rootMargin: `0px 0px ${rootMargin} 0px`,
-                element: sentinelElement
-            });
         }, 100);
 
         return () => {

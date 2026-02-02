@@ -21,6 +21,9 @@ const GameDetailPage = () => {
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [isHoveringCover, setIsHoveringCover] = useState(false);
   const [playTrailer, setPlayTrailer] = useState(false);
+  const [favoriteCount, setFavoriteCount] = useState(0);
+  const [nowTick, setNowTick] = useState(Date.now());
+  const [recentlyVisited, setRecentlyVisited] = useState<Game[]>([]);
 
   const nextSimilarSlide = () => {
     if (game?.similar_games && game.similar_games.length > 0) {
@@ -36,8 +39,18 @@ const GameDetailPage = () => {
 
   const { index: similarIndex, next: similarNext, prev: similarPrev, trackRef: similarTrackRef, withTransition: similarWithTransition } = useInfiniteCarousel(game?.similar_games?.length || 0, 6);
 
+  const recentCarousel = useInfiniteCarousel(
+    Math.max(recentlyVisited.length, 6),
+    6
+  );
+
   useEffect(() => {
     window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -50,10 +63,36 @@ const GameDetailPage = () => {
         setLoading(true);
         setError('');
         window.scrollTo(0, 0);
+        console.log('Fetching game with slug:', slug);
         const response = await api.get(`/games/${slug}`);
         const gameData = response.data;
+        console.log('Game data received:', gameData);
 
         setGame(gameData);
+
+        if (gameData?.id) {
+          try {
+            const favCountResponse = await api.get(`/games/${gameData.id}/favorite-count`);
+            setFavoriteCount(favCountResponse.data.count || 0);
+
+            if (isAuthenticated) {
+              // Записываем посещение
+              console.log('Recording visit for game:', gameData.id);
+              const visitResponse = await api.post('/games/visit', { gameId: gameData.id });
+              console.log('Visit response:', visitResponse.data);
+
+              // Загружаем обновленный список недавно посещенных игр
+              const recentResponse = await api.get('/games/recently-visited');
+              console.log('Recently visited response:', recentResponse.data);
+              setRecentlyVisited(recentResponse.data.games || []);
+            } else {
+              console.log('User not authenticated, skipping visit recording');
+              setRecentlyVisited([]);
+            }
+          } catch (err) {
+            console.error('Error loading additional data:', err);
+          }
+        }
       } catch (err) {
         setError('Failed to load game details');
         console.error('Error loading game:', err);
@@ -65,7 +104,7 @@ const GameDetailPage = () => {
     if (slug) {
       fetchGame();
     }
-  }, [slug]);
+  }, [slug, isAuthenticated]);
 
   useEffect(() => {
     const loadFavorite = async () => {
@@ -84,6 +123,18 @@ const GameDetailPage = () => {
   }, [isAuthenticated, game?.id]);
 
 
+
+  const formatCountdown = (targetIso?: string): { days: number; hours: number; minutes: number; seconds: number } | null => {
+    if (!targetIso) return null;
+    const target = new Date(targetIso).getTime();
+    const diff = Math.max(0, target - nowTick);
+    const totalSeconds = Math.floor(diff / 1000);
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return { days, hours, minutes, seconds };
+  };
 
   const getCoverUrl = (): string | null => {
     if (!game?.cover?.url) return null;
@@ -178,9 +229,45 @@ const GameDetailPage = () => {
 
   return (
     <div className="game-detail-page">
-      <button onClick={() => navigate(-1)} className="game-detail-page__back-btn">
-        ← Back
-      </button>
+      <div className="game-detail-page__top-row">
+        <button onClick={() => navigate(-1)} className="game-detail-page__back-btn">
+          ← Back
+        </button>
+
+        {game.releaseDate && new Date(game.releaseDate) > new Date() && (
+          <div className="game-detail-page__countdown">
+            <div className="game-detail-page__countdown-content">
+              <h3>Release Countdown</h3>
+              {(() => {
+                const countdown = formatCountdown(game.releaseDate);
+                if (!countdown) return null;
+                return (
+                  <div className="game-detail-page__countdown-timer">
+                    <div className="game-detail-page__countdown-item">
+                      <span className="game-detail-page__countdown-value">{countdown.days}</span>
+                      <span className="game-detail-page__countdown-label">days</span>
+                    </div>
+                    <div className="game-detail-page__countdown-item">
+                      <span className="game-detail-page__countdown-value">{String(countdown.hours).padStart(2, '0')}</span>
+                      <span className="game-detail-page__countdown-label">hours</span>
+                    </div>
+                    <div className="game-detail-page__countdown-item">
+                      <span className="game-detail-page__countdown-value">{String(countdown.minutes).padStart(2, '0')}</span>
+                      <span className="game-detail-page__countdown-label">minutes</span>
+                    </div>
+                    <div className="game-detail-page__countdown-item">
+                      <span className="game-detail-page__countdown-value">{String(countdown.seconds).padStart(2, '0')}</span>
+                      <span className="game-detail-page__countdown-label">seconds</span>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        )}
+
+        <div></div>
+      </div>
 
       <div className="game-detail-page__hero">
         <div
@@ -240,9 +327,11 @@ const GameDetailPage = () => {
                   if (isFavorited) {
                     await removeFavorite(game.id);
                     setIsFavorited(false);
+                    setFavoriteCount(prev => Math.max(0, prev - 1));
                   } else {
                     await addFavorite(game.id);
                     setIsFavorited(true);
+                    setFavoriteCount(prev => prev + 1);
                   }
                 } finally {
                   setFavoriteLoading(false);
@@ -251,6 +340,9 @@ const GameDetailPage = () => {
               title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
             >
               <span aria-hidden="true">{isFavorited ? '❤️' : '🤍'}</span>
+              {favoriteCount > 0 && (
+                <span className="game-detail-page__favorite-count">{favoriteCount}</span>
+              )}
             </button>
           </div>
           <div className="game-detail-page__meta">
@@ -569,15 +661,17 @@ const GameDetailPage = () => {
         <div className="game-detail-page__similar">
           <h2>Similar Games</h2>
           <div className="game-detail-page__similar-carousel">
-            <button
-              className="game-detail-page__similar-nav game-detail-page__similar-nav--prev"
-              onClick={prevSimilarSlide}
-              aria-label="Previous games"
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
-            </button>
+            {game.similar_games.length > 5 && (
+              <button
+                className="game-detail-page__similar-nav game-detail-page__similar-nav--prev"
+                onClick={prevSimilarSlide}
+                aria-label="Previous games"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M15 18l-6-6 6-6" />
+                </svg>
+              </button>
+            )}
             <div className="game-detail-page__similar-window">
               <div
                 ref={similarTrackRef}
@@ -615,6 +709,18 @@ const GameDetailPage = () => {
                               {Math.round(similarGame.rating)}/100
                             </div>
                           )}
+                          {(similarGame as any).genres && (similarGame as any).genres.length > 0 && (
+                            <div className="game-detail-page__similar-genres">
+                              {(similarGame as any).genres
+                                .filter((genre: any) => genre !== undefined && genre !== null && genre.name !== undefined)
+                                .slice(0, 2)
+                                .map((genre: any) => (
+                                  <span key={genre.id} className="game-detail-page__similar-genre-tag">
+                                    {genre.name}
+                                  </span>
+                                ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -622,19 +728,154 @@ const GameDetailPage = () => {
                 })()}
               </div>
             </div>
-            <button
-              className="game-detail-page__similar-nav game-detail-page__similar-nav--next"
-              onClick={nextSimilarSlide}
-              aria-label="Next games"
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M9 18l6-6-6-6" />
-              </svg>
-            </button>
+            {game.similar_games.length > 5 && (
+              <button
+                className="game-detail-page__similar-nav game-detail-page__similar-nav--next"
+                onClick={nextSimilarSlide}
+                aria-label="Next games"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
       )}
-    </div>
+
+      {recentlyVisited.length > 0 && (
+        <div className="game-detail-page__recent">
+          <h2>Recently Visited</h2>
+
+          {/* 1–5 игр — простая сетка */}
+          {recentlyVisited.length <= 5 && (
+            <div className={`game-detail-page__recent-grid ${recentlyVisited.length > 0 && recentlyVisited.length <= 5 ? 'compact' : ''}`}>
+              {recentlyVisited.map((recentGame) => {
+                const gameSlug = recentGame.slug || recentGame.id;
+                return (
+                  <div
+                    key={recentGame.id}
+                    className="game-detail-page__recent-item"
+                    onClick={() => navigate(`/game/${gameSlug}`)}
+                  >
+                    {recentGame.cover?.url ? (
+                      <img src={
+                        recentGame.cover.url.startsWith('http://') || recentGame.cover.url.startsWith('https://')
+                          ? recentGame.cover.url
+                          : `https://images.igdb.com/igdb/image/upload/t_cover_big/${recentGame.cover.url.split('/').pop()?.replace('.jpg', '').replace('.png', '')}.jpg`
+                      } alt={recentGame.name} />
+                    ) : (
+                      <div className="game-detail-page__recent-no-cover">No image</div>
+                    )}
+                    <div className="game-detail-page__recent-info">
+                      <h3>{recentGame.name}</h3>
+                      {recentGame.rating !== undefined && (
+                        <div className="game-detail-page__recent-rating">
+                          {Math.round(recentGame.rating)}/100
+                        </div>
+                      )}
+                      {recentGame.genres && recentGame.genres.length > 0 && (
+                        <div className="game-detail-page__recent-genres">
+                          {recentGame.genres
+                            .filter((genre): genre is { id: number; name: string } => genre !== undefined && genre !== null && genre.name !== undefined)
+                            .slice(0, 2)
+                            .map(genre => (
+                              <span key={genre.id} className="game-detail-page__recent-genre-tag">
+                                {genre.name}
+                              </span>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* 6+ игр — бесконечная карусель */}
+          {recentlyVisited.length >= 6 && (
+            <div className="game-detail-page__recent-carousel">
+              <button
+                className="game-detail-page__recent-nav game-detail-page__recent-nav--prev"
+                onClick={recentCarousel.prev}
+                aria-label="Previous games"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M15 18l-6-6 6-6" />
+                </svg>
+              </button>
+
+              <div className="game-detail-page__recent-window">
+                <div
+                  ref={recentCarousel.trackRef}
+                  className="game-detail-page__recent-track"
+                  style={{
+                    transform: `translateX(-${recentCarousel.index * 220}px)`,
+                    transition: recentCarousel.withTransition ? 'transform 0.4s ease' : 'none'
+                  }}
+                >
+                  {[
+                    ...recentlyVisited.slice(-6),
+                    ...recentlyVisited,
+                    ...recentlyVisited.slice(0, 6)
+                  ].map((recentGame, index) => {
+                    const gameSlug = recentGame.slug || recentGame.id;
+                    return (
+                      <div
+                        key={`${recentGame.id}-${index}`}
+                        className="game-detail-page__recent-item"
+                        onClick={() => navigate(`/game/${gameSlug}`)}
+                      >
+                        {recentGame.cover?.url ? (
+                          <img src={
+                            recentGame.cover.url.startsWith('http://') || recentGame.cover.url.startsWith('https://')
+                              ? recentGame.cover.url
+                              : `https://images.igdb.com/igdb/image/upload/t_cover_big/${recentGame.cover.url.split('/').pop()?.replace('.jpg', '').replace('.png', '')}.jpg`
+                          } alt={recentGame.name} />
+                        ) : (
+                          <div className="game-detail-page__recent-no-cover">No image</div>
+                        )}
+                        <div className="game-detail-page__recent-info">
+                          <h3>{recentGame.name}</h3>
+                          {recentGame.rating !== undefined && (
+                            <div className="game-detail-page__recent-rating">
+                              {Math.round(recentGame.rating)}/100
+                            </div>
+                          )}
+                          {recentGame.genres && recentGame.genres.length > 0 && (
+                            <div className="game-detail-page__recent-genres">
+                              {recentGame.genres
+                                .filter((genre): genre is { id: number; name: string } => genre !== undefined && genre !== null && genre.name !== undefined)
+                                .slice(0, 2)
+                                .map(genre => (
+                                  <span key={genre.id} className="game-detail-page__recent-genre-tag">
+                                    {genre.name}
+                                  </span>
+                                ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <button
+                className="game-detail-page__recent-nav game-detail-page__recent-nav--next"
+                onClick={recentCarousel.next}
+                aria-label="Next games"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div >
   );
 };
 

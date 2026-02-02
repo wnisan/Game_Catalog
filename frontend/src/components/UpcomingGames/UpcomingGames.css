@@ -1,41 +1,44 @@
 .upcoming-games {
-  margin: 8px 0 24px 0;
+  margin: 32px 0 32px 0;
 }
 
 .upcoming-games__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 12px;
+  margin-bottom: 24px;
 }
 
 .upcoming-games__header h2 {
   margin: 0;
   color: #e6edf3;
-  font-size: 1.4rem;
-}
-
-.upcoming-games__nav {
-  display: flex;
-  gap: 10px;
-}
-
-.upcoming-games__btn {
-  width: 38px;
-  height: 38px;
-  border-radius: 999px;
-  border: 1px solid #30363d;
-  background: rgba(22, 27, 34, 0.6);
-  color: #e6edf3;
-  cursor: pointer;
-  font-size: 20px;
+  font-size: 1.8rem;
+  font-weight: 700;
 }
 
 .upcoming-games__carousel {
   position: relative;
   display: flex;
   align-items: center;
+  gap: 16px;
+}
+
+.upcoming-games__nav {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(22, 27, 34, 0.8);
+  border: 2px solid #30363d;
+  color: #e6edf3;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.upcoming-games__nav:hover {
+  background: rgba(88, 166, 255, 0.15);
+  border-color: #58a6ff;
+  transform: scale(1.1);
 }
 
 .upcoming-games__window {

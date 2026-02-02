@@ -80,11 +80,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     React.useEffect(() => {
         const loadUser = async () => {
             try {
-                // Проверяем токен на сервере 
+                setIsLoading(true);
                 const { getMe } = await import('../services/api');
                 const result = await getMe();
 
-                // Если пользователь есть, устанавливаем его
                 if (result && result.user) {
                     setUser(result.user);
                     setToken('cookie');
@@ -93,7 +92,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     setToken(null);
                 }
             } catch (error: any) {
-                if (error.response?.status && error.response.status !== 401) {
+                if (error.response?.status !== 401) {
                     console.error('Token validation failed:', error);
                 }
                 setUser(null);

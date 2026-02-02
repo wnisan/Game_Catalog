@@ -13,11 +13,9 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3001;
 
-const allowedOrigins = [
-    'http://localhost:5174',
-    'http://localhost:5173',
-    'https://game-catalog-1aq.pages.dev'
-];
+const allowedOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',')
+    : [];
 
 app.use(cors({
     origin: (origin, callback) => {
@@ -27,7 +25,7 @@ app.use(cors({
             return callback(null, true);
         }
 
-        return callback(null, false);
+        return callback(new Error(`CORS blocked for origin: ${origin}`));
     },
     credentials: true
 }));

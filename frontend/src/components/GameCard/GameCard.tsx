@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useFilters } from '../../contexts/FiltersContext';
@@ -10,9 +10,10 @@ interface GameCardProps {
     game: Game;
     onClick?: () => void;
     onFavoriteChange?: (gameId: number, isFavorited: boolean) => void;
+    isFirst?: boolean;
 }
 
-const GameCard = ({ game, onClick, onFavoriteChange }: GameCardProps) => {
+const GameCard = ({ game, onClick, onFavoriteChange, isFirst = false }: GameCardProps) => {
     const navigate = useNavigate();
     const location = useLocation();
     const { isAuthenticated } = useAuth();
@@ -43,7 +44,9 @@ const GameCard = ({ game, onClick, onFavoriteChange }: GameCardProps) => {
                     const favorited = await checkFavorite(game.id);
                     setIsFavorited(favorited);
                 } catch (error) {
-                    console.error('Error checking favorite status:', error);
+                    if (import.meta.env.DEV) {
+                        console.error('Error checking favorite status:', error);
+                    }
                 }
             };
             loadFavoriteStatus();
@@ -73,7 +76,9 @@ const GameCard = ({ game, onClick, onFavoriteChange }: GameCardProps) => {
                 }
             }
         } catch (error) {
-            console.error('Error toggling favorite:', error);
+            if (import.meta.env.DEV) {
+                console.error('Error toggling favorite:', error);
+            }
         } finally {
             setIsLoading(false);
         }
@@ -89,6 +94,12 @@ const GameCard = ({ game, onClick, onFavoriteChange }: GameCardProps) => {
         const imageId = game.cover.url.split('/').pop()?.replace(/\.(jpg|png)$/, '');
         return imageId ? `https://images.igdb.com/igdb/image/upload/t_cover_big/${imageId}.jpg` : null;
     };
+
+    const filteredGenres = useMemo(() => {
+        return game.genres
+            ?.filter((genre): genre is { id: number; name: string } => genre !== undefined && genre !== null && genre.name !== undefined)
+            .slice(0, 3) || [];
+    }, [game.genres]);
 
     return (
         <article
@@ -120,7 +131,11 @@ const GameCard = ({ game, onClick, onFavoriteChange }: GameCardProps) => {
                             <img
                                 src={getCoverUrl()!}
                                 alt={`Cover art for ${game.name}`}
-                                loading='lazy'
+                                loading={isFirst ? 'eager' : 'lazy'}
+                                fetchPriority={isFirst ? 'high' : 'auto'}
+                                decoding="async"
+                                width="140"
+                                height="180"
                             />
                         ) : (
                             <div className="game-card__no-cover" aria-label="No cover image available">
@@ -143,7 +158,7 @@ const GameCard = ({ game, onClick, onFavoriteChange }: GameCardProps) => {
                 )}
                 {isAuthenticated && (
                     <button
-                        className={`game-card__favorite ${isFavorited ? 'favorited' : ''}`}
+                        className={`game-card__favorite ${isFavorited ? 'favorited' : ''} ${isHovering ? 'visible' : ''}`}
                         onClick={handleFavoriteClick}
                         disabled={isLoading}
                         aria-label={isFavorited ? `Remove ${game.name} from favorites` : `Add ${game.name} to favorites`}
@@ -161,32 +176,29 @@ const GameCard = ({ game, onClick, onFavoriteChange }: GameCardProps) => {
                     {formatRating(game.rating)}
                 </div>
 
-                {game.genres && game.genres.length > 0 && (
+                {filteredGenres.length > 0 && (
                     <div className="game-card__genres" role="list" aria-label="Genres">
-                        {game.genres
-                            .filter((genre): genre is { id: number; name: string } => genre !== undefined && genre !== null && genre.name !== undefined)
-                            .slice(0, 3)
-                            .map(genre => (
-                                <span
-                                    key={genre.name}
-                                    className="game-card__genre-tag"
-                                    role="listitem"
-                                    onClick={(e) => {
-                                        if (isExplorePage) {
-                                            e.stopPropagation();
-                                            const target = e.currentTarget;
-                                            target.classList.add('game-card__genre-tag--clicked');
-                                            setTimeout(() => {
-                                                target.classList.remove('game-card__genre-tag--clicked');
-                                            }, 300);
-                                            updateFilter('genres', [genre.id]);
-                                        }
-                                    }}
-                                    style={isExplorePage ? { cursor: 'pointer', transition: 'all 0.2s ease' } : { transition: 'all 0.2s ease' }}
-                                >
-                                    {genre.name}
-                                </span>
-                            ))}
+                        {filteredGenres.map(genre => (
+                            <span
+                                key={genre.name}
+                                className="game-card__genre-tag"
+                                role="listitem"
+                                onClick={(e) => {
+                                    if (isExplorePage) {
+                                        e.stopPropagation();
+                                        const target = e.currentTarget;
+                                        target.classList.add('game-card__genre-tag--clicked');
+                                        setTimeout(() => {
+                                            target.classList.remove('game-card__genre-tag--clicked');
+                                        }, 300);
+                                        updateFilter('genres', [genre.id]);
+                                    }
+                                }}
+                                style={isExplorePage ? { cursor: 'pointer', transition: 'all 0.2s ease' } : { transition: 'all 0.2s ease' }}
+                            >
+                                {genre.name}
+                            </span>
+                        ))}
                     </div>
                 )}
             </div>

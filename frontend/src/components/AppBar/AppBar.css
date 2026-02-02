@@ -38,6 +38,14 @@
 .app-bar__nav {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.app-bar__nav-left,
+.app-bar__nav-right {
+  display: flex;
+  align-items: center;
 }
 
 .app-bar__nav-list {
@@ -98,6 +106,14 @@
 }
 
 .app-bar__auth {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.app-bar__auth-left,
+.app-bar__auth-right {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -184,11 +200,11 @@
   .app-bar__container {
     padding: 0 16px;
   }
-  
+
   .app-bar__nav-list {
     gap: 12px;
   }
-  
+
   .app-bar__nav-link {
     font-size: 14px;
     padding: 6px 8px;

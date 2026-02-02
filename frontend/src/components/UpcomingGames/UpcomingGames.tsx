@@ -29,7 +29,7 @@ const UpcomingGames = () => {
 
   useEffect(() => {
     const load = async () => {
-      const data = await getUpcomingGames(12);
+      const data = await getUpcomingGames(50);
       setGames(data || []);
     };
     load();
@@ -64,13 +64,18 @@ const UpcomingGames = () => {
     <section className="upcoming-games">
       <div className="upcoming-games__header">
         <h2>Soon</h2>
-        <div className="upcoming-games__nav">
-          <button type="button" className="upcoming-games__btn" onClick={prev} aria-label="Previous games">‹</button>
-          <button type="button" className="upcoming-games__btn" onClick={next} aria-label="Next games">›</button>
-        </div>
       </div>
 
       <div className="upcoming-games__carousel">
+        <button
+          className="upcoming-games__nav upcoming-games__nav--prev"
+          onClick={prev}
+          aria-label="Previous games"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
         <div className="upcoming-games__window">
           <div
             ref={trackRef}
@@ -120,6 +125,15 @@ const UpcomingGames = () => {
             })}
           </div>
         </div>
+        <button
+          className="upcoming-games__nav upcoming-games__nav--next"
+          onClick={next}
+          aria-label="Next games"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </button>
       </div>
     </section>
   );

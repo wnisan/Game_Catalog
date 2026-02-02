@@ -1,0 +1,24 @@
+User-agent: *
+Allow: /
+
+Crawl-delay: 1
+
+# Разрешение всем поисковым системам индексирования сайта
+Disallow: /admin/
+Disallow: /api/
+Disallow: /*.json$
+
+# Разрешение индексирования CSS и JS файлов для улучшения отображения
+Allow: /assets/
+Allow: /*.css$
+Allow: /*.js$
+Allow: /*.png$
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.gif$
+Allow: /*.svg$
+Allow: /*.webp$
+Allow: /*.ico$
+
+# Блокировка сканирования исходных карт
+Disallow: /*.map$
