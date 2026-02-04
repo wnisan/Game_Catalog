@@ -44,26 +44,19 @@ export const getGames = async (req, res) => {
         });
 
         if (includeCount === 'true') {
-            const hasRatingFilter = (ratingMin !== undefined && ratingMin !== null) || (ratingMax !== undefined && ratingMax !== null);
-            const isRatingSort = sortBy && sortBy.startsWith('rating');
-
-            if (hasRatingFilter && isRatingSort) {
-                res.json({ games, totalCount: null });
-            } else {
-                const totalCount = await IGDBService.getGamesCount({
-                    search,
-                    ratingMin: ratingMin !== undefined ? Number(ratingMin) : undefined,
-                    ratingMax: ratingMax !== undefined ? Number(ratingMax) : undefined,
-                    genres,
-                    platforms,
-                    engines,
-                    ageRatings,
-                    releaseDateMin,
-                    releaseDateMax,
-                    sortBy
-                });
-                res.json({ games, totalCount });
-            }
+            const totalCount = await IGDBService.getGamesCount({
+                search,
+                ratingMin: ratingMin !== undefined ? Number(ratingMin) : undefined,
+                ratingMax: ratingMax !== undefined ? Number(ratingMax) : undefined,
+                genres,
+                platforms,
+                engines,
+                ageRatings,
+                releaseDateMin,
+                releaseDateMax,
+                sortBy
+            });
+            res.json({ games, totalCount });
         } else {
             res.json(games);
         }

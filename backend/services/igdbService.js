@@ -114,8 +114,12 @@ class IGDBService {
         const addFilterCondition = (filterValue, fieldName) => {
             if (!filterValue) return;
             const ids = filterValue.split(',').map(Number).filter(n => !isNaN(n));
-            if (ids.length > 0) {
-                where.push(`${fieldName} = (${ids.join(',')})`);
+            if (ids.length === 1) {
+                where.push(`${fieldName} = (${ids[0]})`);
+            } else if (ids.length > 1) {
+                ids.forEach(id => {
+                    where.push(`${fieldName} = (${id})`);
+                });
             }
         };
 
@@ -190,8 +194,12 @@ class IGDBService {
         const addFilterCondition = (filterValue, fieldName) => {
             if (!filterValue) return;
             const ids = filterValue.split(',').map(Number).filter(n => !isNaN(n));
-            if (ids.length > 0) {
-                where.push(`${fieldName} = (${ids.join(',')})`);
+            if (ids.length === 1) {
+                where.push(`${fieldName} = (${ids[0]})`);
+            } else if (ids.length > 1) {
+                ids.forEach(id => {
+                    where.push(`${fieldName} = (${id})`);
+                });
             }
         };
 
@@ -237,12 +245,8 @@ class IGDBService {
             query += ` where ${where.join(' & ')};`;
         }
 
-        const hasRatingFilterInQuery = where.some(w => w.includes('rating'));
-        if (hasRatingFilterInQuery && sortBy && sortBy.startsWith('rating')) {
-            query += ` sort id desc;`;
-        } else {
-            query += ` sort ${sortMap[sortBy] || 'first_release_date desc'};`;
-        }
+        const sortClause = sortMap[sortBy] || 'first_release_date desc';
+        query += ` sort ${sortClause};`;
 
         const actualLimit = limit;
 
@@ -330,63 +334,6 @@ class IGDBService {
 
                 let games = response.data.map(game => this.normalizeGame(game));
 
-                const hasRatingFilterInQuery = where.some(w => w.includes('rating'));
-                const wasSortChanged = hasRatingFilterInQuery && sortBy && sortBy.startsWith('rating');
-
-                if (games.length > 0 && (ratingMin !== undefined || ratingMax !== undefined)) {
-                    const sampleRatings = games.slice(0, 10).map(g => ({
-                        name: g.name,
-                        rating: g.rating,
-                        rounded: g.rating ? Math.round(g.rating) : null
-                    }));
-                    console.log('Sample game ratings (first 10):', sampleRatings);
-
-                    const ratings = games.filter(g => g.rating).map(g => Math.round(g.rating));
-                    if (ratings.length > 0) {
-                        const minR = Math.min(...ratings);
-                        const maxR = Math.max(...ratings);
-                        const avgR = Math.round(ratings.reduce((a, b) => a + b, 0) / ratings.length);
-                        console.log(`Rating stats: min=${minR}, max=${maxR}, avg=${avgR}, total=${ratings.length}`);
-                    }
-                }
-
-                if (ratingMin !== undefined && ratingMin !== null && !isNaN(Number(ratingMin))) {
-                    const minRating = Number(ratingMin);
-                    const beforeFilter = games.length;
-                    const gamesWithoutRating = games.filter(g => !g.rating).length;
-                    console.log(`Before rating min filter: ${beforeFilter} games (${gamesWithoutRating} without rating), minRating=${minRating}`);
-                    games = games.filter(game => {
-                        if (!game.rating) return false;
-                        const roundedRating = Math.round(game.rating);
-                        return roundedRating >= minRating;
-                    });
-                    console.log(`Rating min filter (>= ${minRating}): ${beforeFilter} -> ${games.length} games`);
-                }
-                if (ratingMax !== undefined && ratingMax !== null && !isNaN(Number(ratingMax))) {
-                    const maxRating = Number(ratingMax);
-                    const beforeFilter = games.length;
-                    const gamesWithoutRating = games.filter(g => !g.rating).length;
-                    console.log(`Before rating max filter: ${beforeFilter} games (${gamesWithoutRating} without rating), maxRating=${maxRating}`);
-                    games = games.filter(game => {
-                        if (!game.rating) return false;
-                        const roundedRating = Math.round(game.rating);
-                        return roundedRating <= maxRating;
-                    });
-                    console.log(`Rating max filter (<= ${maxRating}): ${beforeFilter} -> ${games.length} games`);
-                }
-
-                console.log(`Final games count after rating filters: ${games.length}`);
-
-                if (wasSortChanged) {
-                    const sortDirection = sortBy.includes('desc') ? 'desc' : 'asc';
-                    games.sort((a, b) => {
-                        const ratingA = a.rating || 0;
-                        const ratingB = b.rating || 0;
-                        return sortDirection === 'desc' ? ratingB - ratingA : ratingA - ratingB;
-                    });
-                    console.log(`Re-sorted games by rating ${sortDirection} after filtering`);
-                }
-
                 if (games.length === 0 && (ratingMin !== undefined || ratingMax !== undefined) && response.data.length > 0) {
                     console.warn(`No games after rating filter! ratingMin=${ratingMin}, ratingMax=${ratingMax}`);
                     const sampleRatings = response.data.slice(0, 20).map(g => ({
@@ -416,7 +363,7 @@ class IGDBService {
                     games = games.filter(game => {
                         if (!game[gameField] || game[gameField].length === 0) return false;
                         const gameIds = game[gameField].map(item => item.id);
-                        return ids.some(id => gameIds.includes(id));
+                        return ids.every(id => gameIds.includes(id));
                     });
                 };
 
