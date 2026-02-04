@@ -35,7 +35,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const { user } = await loginApi(email, password);
 
         setUser(user);
-        setToken('cookie'); // Токен хранится в cookie
+        setToken(null);
     };
 
     const register = async (name: string, email: string, password: string): Promise<void> => {
@@ -43,7 +43,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const { user } = await registerApi(email, name, password);
 
         setUser(user);
-        setToken('cookie');
+        setToken(null);
     };
 
     const refreshUser = useCallback(async (): Promise<void> => {
@@ -86,7 +86,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
                 if (result && result.user) {
                     setUser(result.user);
-                    setToken('cookie');
+                    setToken(null);
                 } else {
                     setUser(null);
                     setToken(null);
@@ -103,6 +103,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         };
         loadUser();
     }, []);
+
+    React.useEffect(() => {
+        const handler = () => refreshUser();
+        window.addEventListener('auth:refresh', handler);
+        return () => window.removeEventListener('auth:refresh', handler);
+    }, [refreshUser]);
+
+
 
     const value: AuthContextType = {
         user,

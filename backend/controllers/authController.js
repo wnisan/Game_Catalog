@@ -64,23 +64,30 @@ export const login = async (req, res) => {
 };
 
 export const refresh = async (req, res) => {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (!refreshToken) {
+        return res.status(401).json({ error: 'No refresh token' });
+    }
+
     try {
-        const refreshToken = req.cookies?.refreshToken;
+        const data = await refreshAccessToken(refreshToken);
 
-        if (!refreshToken) {
-            return res.status(401).json({ error: 'Session expired. Please sign in again' });
-        }
+        res.cookie('accessToken', data.accessToken, {
+            httpOnly: true,
+            sameSite: 'lax',
+            maxAge: 15 * 60 * 1000 // 15 минут
+        });
 
-        const { accessToken, refreshToken: newRefreshToken, user } = await refreshAccessToken(refreshToken);
+        res.cookie('refreshToken', data.refreshToken, {
+            httpOnly: true,
+            sameSite: 'lax',
+            maxAge: 365 * 24 * 60 * 60 * 1000
+        });
 
-        setCookies(res, accessToken, newRefreshToken);
-        console.log('Access token refreshed for user:', user.email);
-        res.json({ user });
-    } catch (error) {
-        console.error('Refresh token error:', error);
-        res.clearCookie('accessToken');
-        res.clearCookie('refreshToken');
-        res.status(401).json({ error: error.message });
+        res.json({ user: data.user });
+    } catch (err) {
+        return res.status(401).json({ error: 'Session expired' });
     }
 };
 

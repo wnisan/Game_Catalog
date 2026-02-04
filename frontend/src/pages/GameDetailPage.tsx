@@ -78,13 +78,28 @@ const GameDetailPage = () => {
             if (isAuthenticated) {
               // Записываем посещение
               console.log('Recording visit for game:', gameData.id);
-              const visitResponse = await api.post('/games/visit', { gameId: gameData.id });
-              console.log('Visit response:', visitResponse.data);
+              try {
+                const visitResponse = await api.post('/games/visit', { gameId: gameData.id });
+                console.log('Visit response:', visitResponse.data);
 
-              // Загружаем обновленный список недавно посещенных игр
-              const recentResponse = await api.get('/games/recently-visited');
-              console.log('Recently visited response:', recentResponse.data);
-              setRecentlyVisited(recentResponse.data.games || []);
+                // Загружаем обновленный список недавно посещенных игр
+                const recentResponse = await api.get('/games/recently-visited');
+                console.log('Recently visited response:', recentResponse.data);
+                setRecentlyVisited(recentResponse.data.games || []);
+              } catch (visitError) {
+                console.error('Error recording visit:', visitError);
+                // Не блокируем загрузку страницы из-за ошибки записи посещения
+
+                // Пробуем загрузить недавно посещенные игры отдельно
+                try {
+                  const recentResponse = await api.get('/games/recently-visited');
+                  console.log('Recently visited response (fallback):', recentResponse.data);
+                  setRecentlyVisited(recentResponse.data.games || []);
+                } catch (recentError) {
+                  console.error('Error loading recently visited games:', recentError);
+                  setRecentlyVisited([]);
+                }
+              }
             } else {
               console.log('User not authenticated, skipping visit recording');
               setRecentlyVisited([]);

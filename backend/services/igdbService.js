@@ -63,13 +63,36 @@ class IGDBService {
     }
 
     async getGamesByIds(ids) {
-        const uniqueIds = Array.from(new Set(ids.map(Number).filter(n => !Number.isNaN(n))));
-        if (uniqueIds.length === 0) return [];
+        try {
+            console.log('getGamesByIds called with:', ids);
 
-        const headers = await twitchAuth.getAuthHeaders();
-        const query = `fields id,name,slug,first_release_date,genres.name,platforms.name,game_engines.name,videos.video_id,cover.image_id,rating; where id = (${uniqueIds.join(',')}); limit ${Math.min(uniqueIds.length, 500)};`;
-        const response = await axios.post(`${this.baseURL}/games`, query, { headers, timeout: 10000 });
-        return (response.data || []).map(g => this.normalizeGame(g));
+            const uniqueIds = Array.from(new Set(ids.map(Number).filter(n => !Number.isNaN(n))));
+            console.log('Unique valid IDs:', uniqueIds);
+
+            if (uniqueIds.length === 0) {
+                console.log('No valid IDs provided, returning empty array');
+                return [];
+            }
+
+            const headers = await twitchAuth.getAuthHeaders();
+            const query = `fields id,name,slug,first_release_date,genres.name,platforms.name,game_engines.name,videos.video_id,cover.image_id,rating; where id = (${uniqueIds.join(',')}); limit ${Math.min(uniqueIds.length, 500)};`;
+
+            console.log('IGDB query:', query);
+
+            const response = await axios.post(`${this.baseURL}/games`, query, { headers, timeout: 10000 });
+
+            console.log('IGDB response status:', response.status);
+            console.log('IGDB response data length:', response.data?.length || 0);
+
+            const games = (response.data || []).map(g => this.normalizeGame(g));
+            console.log('Normalized games:', games.length);
+
+            return games;
+        } catch (error) {
+            console.error('Error in getGamesByIds:', error.response?.data || error.message);
+            console.error('Error stack:', error.stack);
+            throw error;
+        }
     }
 
     async getGamesCount({

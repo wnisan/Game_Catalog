@@ -91,16 +91,6 @@ api.interceptors.response.use(
     },
     async (error) => {
         const originalRequest = error.config;
-        if (error.response?.status === 401 && originalRequest.url?.includes('/auth/me')) {
-
-            return Promise.resolve({
-                data: { user: null },
-                status: 200,
-                statusText: 'OK',
-                headers: error.response.headers,
-                config: originalRequest
-            });
-        }
 
         if (error.response?.status === 401 &&
             !originalRequest._retry &&
@@ -129,7 +119,8 @@ api.interceptors.response.use(
                 });
 
                 if (refreshResponse.data && refreshResponse.data.user) {
-                    processQueue(null, 'cookie');
+                    window.dispatchEvent(new CustomEvent('auth:refresh'));
+                    processQueue(null, null);
                     isRefreshing = false;
                     return api(originalRequest);
                 } else {
@@ -339,28 +330,12 @@ export const logout = async () => {
 
 // получение текущего пользователя
 export const getMe = async () => {
-    try {
-
-        const response = await api.get('/auth/me', {
-            withCredentials: true,
-            validateStatus: (status) => {
-                return status === 200 || status === 401;
-            }
-        });
-
-        if (response.status === 401) {
-            return { user: null };
-        }
-
-        return response.data;
-    } catch (error: any) {
-        if (error.response?.status === 401 || error.status === 401) {
-            return { user: null };
-        }
-
-        throw error;
-    }
+    const response = await api.get('/auth/me', {
+        withCredentials: true
+    });
+    return response.data;
 };
+
 
 export const refreshToken = async () => {
     const response = await api.post('/auth/refresh', {}, {
@@ -403,6 +378,11 @@ export const removeFavorite = async (gameId: number) => {
 export const checkFavorite = async (gameId: number): Promise<boolean> => {
     const response = await api.get(`/favorites/${gameId}/check`);
     return response.data.isFavorite;
+};
+
+export const checkMultipleFavorites = async (gameIds: number[]): Promise<Record<number, boolean>> => {
+    const response = await api.post('/favorites/check-multiple', { gameIds });
+    return response.data.favorites;
 };
 
 // Google OAuth

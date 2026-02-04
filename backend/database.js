@@ -9,6 +9,8 @@ const __dirname = path.dirname(__filename);
 const db = new Database(path.join(__dirname, 'database.sqlite'));
 
 export function initDatabase() {
+    console.log('Initializing database...');
+
     // Создаем таблицу если её нет
     db.exec(`
         CREATE TABLE IF NOT EXISTS users (
@@ -84,13 +86,14 @@ export function initDatabase() {
         CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token ON refresh_tokens(token)
     `);
 
+    // Таблица посещений игр - убираем FOREIGN KEY для совместимости
+    console.log('Creating game_visits table...');
     db.exec(`
         CREATE TABLE IF NOT EXISTS game_visits (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
             game_id INTEGER NOT NULL,
-            visited_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            visited_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     `);
 
@@ -101,6 +104,17 @@ export function initDatabase() {
     db.exec(`
         CREATE INDEX IF NOT EXISTS idx_game_visits_game_id ON game_visits(game_id)
     `);
+
+    // Проверяем что таблица создалась
+    try {
+        const tableInfo = db.prepare("PRAGMA table_info(game_visits)").all();
+        console.log('game_visits table structure:', tableInfo);
+
+        const testCount = db.prepare("SELECT COUNT(*) as count FROM game_visits").get();
+        console.log('game_visits table has', testCount.count, 'records');
+    } catch (error) {
+        console.error('Error checking game_visits table:', error);
+    }
 
     console.log('Database initialized');
 }
@@ -209,9 +223,12 @@ export function createRefreshToken(userId, token, expiresAt) {
 }
 
 export function getRefreshToken(token) {
-    const stmt = db.prepare('SELECT * FROM refresh_tokens WHERE token = ? AND expires_at > datetime("now")');
+    const stmt = db.prepare(
+        'SELECT * FROM refresh_tokens WHERE token = ?'
+    );
     return stmt.get(token);
 }
+
 
 export function deleteRefreshToken(token) {
     const stmt = db.prepare('DELETE FROM refresh_tokens WHERE token = ?');
@@ -335,25 +352,57 @@ export function getCommentById(commentId) {
 }
 
 export function recordGameVisit(userId, gameId) {
-    if (userId) {
-        db.prepare('DELETE FROM game_visits WHERE user_id = ? AND game_id = ?').run(userId, gameId);
-        db.prepare('INSERT INTO game_visits (user_id, game_id) VALUES (?, ?)').run(userId, gameId);
-    } else {
-        db.prepare('INSERT INTO game_visits (game_id) VALUES (?)').run(gameId);
+    try {
+        console.log('Recording game visit:', { userId, gameId });
+
+        if (userId) {
+            // Удаляем предыдущее посещение этой игры пользователем
+            const deleteStmt = db.prepare('DELETE FROM game_visits WHERE user_id = ? AND game_id = ?');
+            const deleteResult = deleteStmt.run(userId, gameId);
+            console.log('Deleted previous visits:', deleteResult.changes);
+
+            // Добавляем новое посещение
+            const insertStmt = db.prepare('INSERT INTO game_visits (user_id, game_id) VALUES (?, ?)');
+            const insertResult = insertStmt.run(userId, gameId);
+            console.log('Inserted new visit:', insertResult.lastInsertRowid);
+        } else {
+            // Для неавторизованных пользователей просто записываем посещение
+            const insertStmt = db.prepare('INSERT INTO game_visits (game_id) VALUES (?)');
+            const insertResult = insertStmt.run(gameId);
+            console.log('Inserted anonymous visit:', insertResult.lastInsertRowid);
+        }
+    } catch (error) {
+        console.error('Error in recordGameVisit database function:', error);
+        throw error;
     }
 }
 
 export function getRecentlyVisitedGames(userId, limit = 10) {
     if (!userId) return [];
-    const stmt = db.prepare(`
-        SELECT game_id, MAX(visited_at) as last_visited
-        FROM game_visits 
-        WHERE user_id = ? 
-        GROUP BY game_id
-        ORDER BY last_visited DESC 
-        LIMIT ?
-    `);
-    return stmt.all(userId, limit).map(row => row.game_id);
+
+    try {
+        console.log('Getting recently visited games for user:', userId, 'limit:', limit);
+
+        const stmt = db.prepare(`
+            SELECT game_id, MAX(visited_at) as last_visited
+            FROM game_visits 
+            WHERE user_id = ? 
+            GROUP BY game_id
+            ORDER BY last_visited DESC 
+            LIMIT ?
+        `);
+
+        const results = stmt.all(userId, limit);
+        console.log('Found recent visits:', results.length);
+
+        const gameIds = results.map(row => row.game_id);
+        console.log('Recent game IDs:', gameIds);
+
+        return gameIds;
+    } catch (error) {
+        console.error('Error in getRecentlyVisitedGames:', error);
+        return [];
+    }
 }
 
 initDatabase();

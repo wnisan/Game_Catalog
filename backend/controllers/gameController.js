@@ -193,24 +193,46 @@ export const recordGameVisit = async (req, res) => {
         const { gameId } = req.body;
         const userId = req.user?.id;
 
+        console.log('recordGameVisit called with:', { gameId, userId });
+
         if (!gameId) {
             return res.status(400).json({ error: 'gameId is required' });
         }
 
-        recordVisit(userId, Number(gameId));
+        // Проверяем что gameId это число
+        const numericGameId = Number(gameId);
+        if (isNaN(numericGameId)) {
+            return res.status(400).json({ error: 'gameId must be a number' });
+        }
+
+        console.log('Recording visit to database...');
+        recordVisit(userId, numericGameId);
+        console.log('Visit recorded successfully');
 
         let recentlyVisited = [];
         if (userId) {
-            const recentGameIds = getRecentlyVisitedGames(userId, 10);
-            if (recentGameIds.length > 0) {
-                recentlyVisited = await IGDBService.getGamesByIds(recentGameIds);
+            console.log('Getting recently visited games for user:', userId);
+            try {
+                const recentGameIds = getRecentlyVisitedGames(userId, 10);
+                console.log('Recent game IDs from DB:', recentGameIds);
+
+                if (recentGameIds.length > 0) {
+                    console.log('Fetching game details from IGDB...');
+                    recentlyVisited = await IGDBService.getGamesByIds(recentGameIds);
+                    console.log('Fetched games from IGDB:', recentlyVisited.length);
+                }
+            } catch (igdbError) {
+                console.error('Error fetching games from IGDB:', igdbError);
+                // Не падаем из-за ошибки IGDB, просто возвращаем пустой массив
+                recentlyVisited = [];
             }
         }
 
         res.json({ success: true, recentlyVisited });
     } catch (error) {
         console.error('Error in recordGameVisit:', error);
-        res.status(500).json({ error: 'Failed to record visit' });
+        console.error('Error stack:', error.stack);
+        res.status(500).json({ error: 'Failed to record visit', details: error.message });
     }
 };
 

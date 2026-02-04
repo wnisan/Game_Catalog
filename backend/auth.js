@@ -77,8 +77,6 @@ export async function loginUser(email, password) {
         throw new Error('Invalid email or password');
     }
 
-    deleteUserRefreshTokens(user.id);
-
     const accessToken = generateAccessToken(user.id);
     const refreshToken = generateRefreshToken();
 
