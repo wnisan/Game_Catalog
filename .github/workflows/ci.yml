@@ -1,5 +1,8 @@
 name: ci
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   push:
     branches:
@@ -28,11 +31,14 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable
 
+      - name: Build shared package
+        run: yarn workspace @game-catalog/shared build
+
       - name: Typecheck
-        run: yarn workspaces foreach -A run typecheck
+        run: yarn typecheck
 
       - name: Lint
-        run: yarn workspaces foreach -A run lint
+        run: yarn lint
 
       - name: Build
-        run: yarn workspaces foreach -A run build
+        run: yarn build
