@@ -7,7 +7,7 @@
     "dev": "tsx watch server.ts",
     "build": "tsc -b",
     "start": "node dist/server.js",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -b --pretty false",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
