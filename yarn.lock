@@ -994,11 +994,17 @@ __metadata:
     "@eslint/js": "npm:^9.39.1"
     "@faker-js/faker": "npm:^10.3.0"
     "@game-catalog/shared": "workspace:*"
+    "@types/bcrypt": "npm:^5.0.2"
     "@types/cookie-parser": "npm:^1.4.10"
     "@types/cors": "npm:^2.8.19"
     "@types/express": "npm:^5.0.5"
+    "@types/express-session": "npm:^1.18.0"
     "@types/jsonwebtoken": "npm:^9.0.10"
+    "@types/mssql": "npm:^9.1.2"
     "@types/node": "npm:^24.10.0"
+    "@types/passport": "npm:^1.0.17"
+    "@types/passport-google-oauth20": "npm:^2.0.16"
+    "@types/ws": "npm:^8.5.14"
     axios: "npm:^1.13.2"
     bcrypt: "npm:^6.0.0"
     cookie-parser: "npm:^1.4.7"
@@ -1490,6 +1496,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/bcrypt@npm:^5.0.2":
+  version: 5.0.2
+  resolution: "@types/bcrypt@npm:5.0.2"
+  dependencies:
+    "@types/node": "npm:*"
+  checksum: 10c0/dd7f05e183b9b1fc08ec499069febf197ab8e9c720766b5bbb5628395082e248f9a444c60882fe7788361fcadc302e21e055ab9c26a300f100e08791c353e6aa
+  languageName: node
+  linkType: hard
+
 "@types/body-parser@npm:*":
   version: 1.19.6
   resolution: "@types/body-parser@npm:1.19.6"
@@ -1546,7 +1561,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/express@npm:^5.0.5":
+"@types/express-session@npm:^1.18.0":
+  version: 1.19.0
+  resolution: "@types/express-session@npm:1.19.0"
+  dependencies:
+    "@types/express": "npm:*"
+  checksum: 10c0/523035f476c84623d6ee4ec81452066d0112f66a41ba9488003c8898f26c85c46951e093bb1cb81447571a467b4a7bba87bd52c08e519a2af254c9de48a25d5f
+  languageName: node
+  linkType: hard
+
+"@types/express@npm:*, @types/express@npm:^5.0.5":
   version: 5.0.6
   resolution: "@types/express@npm:5.0.6"
   dependencies:
@@ -1595,6 +1619,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/mssql@npm:^9.1.2":
+  version: 9.1.11
+  resolution: "@types/mssql@npm:9.1.11"
+  dependencies:
+    "@types/node": "npm:*"
+    tarn: "npm:^3.0.1"
+    tedious: "npm:*"
+  checksum: 10c0/c9e5428892a019f18923546860bb93df99d0906cbe91262358173fa0f4e75296f0d5dca6e2e0f99140a836d4cae2f60d688332d121382a22ea5c7e7889d9f893
+  languageName: node
+  linkType: hard
+
 "@types/node@npm:*, @types/node@npm:>=18":
   version: 25.6.0
   resolution: "@types/node@npm:25.6.0"
@@ -1610,6 +1645,46 @@ __metadata:
   dependencies:
     undici-types: "npm:~7.16.0"
   checksum: 10c0/710050c42f89075c4479e4e1e4c2532486b0c41b1e2a8a13ad88641c88b88cdaea87414e19224f30028719737bd70e327edcaa184d50e86b9418941edd7eb02b
+  languageName: node
+  linkType: hard
+
+"@types/oauth@npm:*":
+  version: 0.9.6
+  resolution: "@types/oauth@npm:0.9.6"
+  dependencies:
+    "@types/node": "npm:*"
+  checksum: 10c0/2f3e4ee1059fd28fc2cb6dd9d0973365a0630ea1fa305ac5455ea9666220b73d8ac42e5bee42367a0f12a1041ef103a16c55bf7803d0a82898319c3e32095b4a
+  languageName: node
+  linkType: hard
+
+"@types/passport-google-oauth20@npm:^2.0.16":
+  version: 2.0.17
+  resolution: "@types/passport-google-oauth20@npm:2.0.17"
+  dependencies:
+    "@types/express": "npm:*"
+    "@types/passport": "npm:*"
+    "@types/passport-oauth2": "npm:*"
+  checksum: 10c0/b29e30e970bb506a78bb4bc283958f814ee125c10fc17f16aff019cf08883e40a873f05b736c0d153e47180b6b2edb84531372d9629956e3e7f027a8af4db588
+  languageName: node
+  linkType: hard
+
+"@types/passport-oauth2@npm:*":
+  version: 1.8.0
+  resolution: "@types/passport-oauth2@npm:1.8.0"
+  dependencies:
+    "@types/express": "npm:*"
+    "@types/oauth": "npm:*"
+    "@types/passport": "npm:*"
+  checksum: 10c0/1635679ed70044858570488fb46a14868099286f4fe785d47874c1a02706cf5b5cee07e5be0e75a5103a5c260ea9e903e0243d8b7992281680233e69f60e72fa
+  languageName: node
+  linkType: hard
+
+"@types/passport@npm:*, @types/passport@npm:^1.0.17":
+  version: 1.0.17
+  resolution: "@types/passport@npm:1.0.17"
+  dependencies:
+    "@types/express": "npm:*"
+  checksum: 10c0/09039429a9178117a80880c4e7d437abc83216eac5e0c97bc6f14a03a59193386cff484931dc880693f8b13a512c366ef7a51ecd8cc1a63f17366be68161f633
   languageName: node
   linkType: hard
 
@@ -1711,6 +1786,15 @@ __metadata:
     "@types/http-errors": "npm:*"
     "@types/node": "npm:*"
   checksum: 10c0/a3c6126bdbf9685e6c7dc03ad34639666eff32754e912adeed9643bf3dd3aa0ff043002a7f69039306e310d233eb8e160c59308f95b0a619f32366bbc48ee094
+  languageName: node
+  linkType: hard
+
+"@types/ws@npm:^8.5.14":
+  version: 8.18.1
+  resolution: "@types/ws@npm:8.18.1"
+  dependencies:
+    "@types/node": "npm:*"
+  checksum: 10c0/61aff1129143fcc4312f083bc9e9e168aa3026b7dd6e70796276dcfb2c8211c4292603f9c4864fae702f2ed86e4abd4d38aa421831c2fd7f856c931a481afbab
   languageName: node
   linkType: hard
 
@@ -6046,14 +6130,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tarn@npm:^3.0.2":
+"tarn@npm:^3.0.1, tarn@npm:^3.0.2":
   version: 3.0.2
   resolution: "tarn@npm:3.0.2"
   checksum: 10c0/ea2344e3d21936111176375bd6f34eba69a38ef1bc59434d523fd313166f8a28a47b0a847846c119f72dcf2c1e1231596d74ac3fcfc3cc73966b3d293a327269
   languageName: node
   linkType: hard
 
-"tedious@npm:^19.0.0":
+"tedious@npm:*, tedious@npm:^19.0.0":
   version: 19.2.1
   resolution: "tedious@npm:19.2.1"
   dependencies:
