@@ -7,7 +7,7 @@
   ],
   "scripts": {
     "dev": "yarn workspaces foreach -A -ptv --include @game-catalog/backend --include @game-catalog/frontend run dev",
-    "typecheck": "tsc -b",
+    "typecheck": "yarn workspace @game-catalog/shared build && yarn workspace @game-catalog/shared typecheck && yarn workspaces foreach -A -ptv --exclude @game-catalog/shared run typecheck",
     "lint": "yarn workspaces foreach -A -ptv run lint",
     "build": "yarn workspaces foreach -A -ptv --include @game-catalog/shared --include @game-catalog/backend --include @game-catalog/frontend run build",
     "docker:up": "docker compose up --build",
