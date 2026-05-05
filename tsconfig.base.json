@@ -3,6 +3,13 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "baseUrl": ".",
+    "paths": {
+      "@game-catalog/shared": [
+        "packages/shared/src/index.ts",
+        "packages/shared/dist/index.d.ts"
+      ]
+    },
     "strict": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
