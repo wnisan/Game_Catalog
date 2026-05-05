@@ -5,12 +5,30 @@
     "composite": true,
     "outDir": "dist",
     "rootDir": ".",
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "allowJs": false,
     "noImplicitAny": false,
-    "useUnknownInCatchVariables": false
+    "useUnknownInCatchVariables": false,
+    "paths": {
+      "@game-catalog/shared": [
+        "../shared/src/index.ts"
+      ]
+    }
   },
-  "references": [{ "path": "../shared" }],
-  "include": ["**/*.ts", "**/*.d.ts"],
-  "exclude": ["dist", "node_modules", "scripts"]
+  "references": [
+    {
+      "path": "../shared"
+    }
+  ],
+  "include": [
+    "**/*.ts",
+    "**/*.d.ts"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules",
+    "scripts"
+  ]
 }
