@@ -1,0 +1,222 @@
+.tum-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 16px;
+}
+
+.tum-modal {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 440px;
+    overflow: hidden;
+}
+
+.tum-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid #21262d;
+}
+
+.tum-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #e6edf3;
+}
+
+.tum-close {
+    background: none;
+    border: none;
+    color: #8b949e;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.tum-close:hover { background: #21262d; color: #e6edf3; }
+
+.tum-body {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.tum-label {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.tum-presets {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.tum-preset {
+    flex: 1;
+    min-width: 60px;
+    background: #21262d;
+    color: #e6edf3;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 10px 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tum-preset:hover { border-color: #58a6ff; color: #58a6ff; }
+
+.tum-preset-active {
+    background: rgba(88,166,255,0.12);
+    border-color: #58a6ff;
+    color: #58a6ff;
+}
+
+.tum-custom-row {
+    display: flex;
+    align-items: center;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+}
+
+.tum-custom-row:focus-within { border-color: #58a6ff; }
+
+.tum-dollar {
+    padding: 0 12px;
+    color: #8b949e;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.tum-custom-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 11px 12px 11px 0;
+    color: #e6edf3;
+    font-size: 15px;
+    outline: none;
+}
+
+.tum-custom-input::placeholder { color: #484f58; }
+
+.tum-error {
+    background: rgba(248,81,73,0.1);
+    color: #f85149;
+    border: 1px solid rgba(248,81,73,0.25);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 14px;
+}
+
+.tum-pay {
+    background: linear-gradient(135deg, #238636, #2ea043);
+    color: #fff;
+    border: none;
+    padding: 13px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+}
+
+.tum-pay:hover:not(:disabled) {
+    background: linear-gradient(135deg, #2ea043, #3fb950);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(46,160,67,0.35);
+}
+
+.tum-pay:disabled { background: #21262d; color: #484f58; cursor: not-allowed; }
+
+.tum-cancel {
+    background: #21262d;
+    color: #e6edf3;
+    border: 1px solid #30363d;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex: 1;
+}
+
+.tum-cancel:hover:not(:disabled) { background: #30363d; }
+.tum-cancel:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.tum-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.tum-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.tum-actions .tum-pay { flex: 2; }
+
+.tum-amount-display {
+    margin: 0;
+    color: #8b949e;
+    font-size: 14px;
+}
+
+.tum-amount-display strong { color: #3fb950; }
+
+
+.tum-done {
+    align-items: center;
+    text-align: center;
+    padding: 40px 24px;
+}
+
+.tum-check {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(63,185,80,0.15);
+    border: 2px solid #3fb950;
+    color: #3fb950;
+    font-size: 1.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tum-done-text {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #e6edf3;
+}
+
+.tum-done-sub {
+    margin: 0;
+    color: #8b949e;
+    font-size: 14px;
+}

@@ -1,0 +1,1215 @@
+.up-page {
+    min-height: 100vh;
+    background: #0d1117;
+    padding: 40px 16px 60px;
+}
+
+.up-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+
+.up-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 16px;
+    padding: 28px 32px;
+}
+
+
+.up-profile-header {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.up-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #fff;
+    flex-shrink: 0;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.up-profile-meta {
+    flex: 1;
+    min-width: 0;
+}
+
+.up-profile-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+}
+
+.up-name {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #e6edf3;
+}
+
+.up-role-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+}
+
+.up-email {
+    margin: 0;
+    color: #8b949e;
+    font-size: 0.9rem;
+}
+
+.up-joined {
+    margin: 4px 0 0;
+    color: #6e7681;
+    font-size: 0.8rem;
+}
+
+.up-edit-btn {
+    background: #21262d;
+    color: #e6edf3;
+    border: 1px solid #30363d;
+    padding: 9px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.up-edit-btn:hover {
+    background: #30363d;
+    border-color: #58a6ff;
+    color: #58a6ff;
+}
+
+
+.up-stats-row {
+    display: flex;
+    gap: 0;
+}
+
+.up-stat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 16px 0;
+}
+
+.up-stat+.up-stat {
+    border-left: 1px solid #21262d;
+}
+
+.up-stat-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #e6edf3;
+}
+
+.up-stat-label {
+    font-size: 12px;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+
+.up-balance-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.up-balance-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.up-balance-label {
+    font-size: 12px;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.up-balance-amount {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #3fb950;
+    line-height: 1;
+}
+
+.up-topup-btn {
+    background: linear-gradient(135deg, #238636, #2ea043);
+    color: #fff;
+    border: none;
+    padding: 11px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.up-topup-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #2ea043, #3fb950);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(46, 160, 67, 0.3);
+}
+
+.up-topup-btn:disabled {
+    background: #21262d;
+    color: #484f58;
+    cursor: not-allowed;
+}
+
+── SECTION TITLE ── */ .up-section-title {
+    margin: 0 0 20px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #e6edf3;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.up-count {
+    background: #21262d;
+    color: #8b949e;
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+── EDIT FORM ── */ .up-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    max-width: 480px;
+}
+
+.up-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.up-field label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 15px;
+}
+
+.up-field input {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 11px 14px;
+    color: #e6edf3;
+    font-size: 15px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+    box-sizing: border-box;
+    max-width: 480px;
+}
+
+.up-field input:focus {
+    outline: none;
+    border-color: #58a6ff;
+    box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.12);
+}
+
+.up-field input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.up-divider {
+    height: 1px;
+    background: #21262d;
+    margin: 4px 0;
+}
+
+.up-hint {
+    font-size: 12px;
+    color: #6e7681;
+    margin: 0;
+}
+
+.up-error {
+    background: rgba(248, 81, 73, 0.1);
+    color: #f85149;
+    border: 1px solid rgba(248, 81, 73, 0.25);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 14px;
+}
+
+.up-success {
+    background: rgba(63, 185, 80, 0.1);
+    color: #3fb950;
+    border: 1px solid rgba(63, 185, 80, 0.25);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 14px;
+}
+
+.up-form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+    max-width: 480px;
+}
+
+.up-save-btn {
+    background: linear-gradient(135deg, #58a6ff, #7c3aed);
+    color: #fff;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.up-save-btn:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.up-save-btn:disabled {
+    background: #21262d;
+    color: #484f58;
+    cursor: not-allowed;
+}
+
+.up-danger-btn {
+    background: rgba(248, 81, 73, 0.1);
+    color: #f85149;
+    border: 1px solid rgba(248, 81, 73, 0.25);
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.up-danger-btn:hover {
+    background: rgba(248, 81, 73, 0.2);
+}
+
+.up-cancel-btn {
+    background: #21262d;
+    color: #e6edf3;
+    border: 1px solid #30363d;
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.up-cancel-btn:hover {
+    background: #30363d;
+}
+
+
+.up-delete-box {
+    margin-top: 20px;
+    padding: 20px;
+    background: rgba(248, 81, 73, 0.05);
+    border: 1px solid rgba(248, 81, 73, 0.2);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 480px;
+}
+
+.up-delete-warning {
+    margin: 0;
+    color: #f85149;
+    font-size: 14px;
+}
+
+.up-delete-input {
+    background: #0d1117;
+    border: 1px solid rgba(248, 81, 73, 0.3);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: #e6edf3;
+    font-size: 15px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.up-delete-input:focus {
+    outline: none;
+    border-color: #f85149;
+}
+
+
+.up-orders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.up-order-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: #0d1117;
+    border: 1px solid #21262d;
+    border-radius: 10px;
+    gap: 12px;
+    transition: border-color 0.2s;
+}
+
+.up-order-item:hover {
+    border-color: #30363d;
+}
+
+.up-order-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.up-order-game {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e6edf3;
+}
+
+.up-order-seller {
+    font-size: 12px;
+    color: #8b949e;
+}
+
+.up-order-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.up-order-price {
+    font-size: 15px;
+    font-weight: 700;
+    color: #3fb950;
+}
+
+.up-order-status {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.up-status-completed {
+    background: rgba(63, 185, 80, 0.15);
+    color: #3fb950;
+}
+
+.up-status-pending_payment {
+    background: rgba(240, 136, 62, 0.15);
+    color: #f0883e;
+}
+
+.up-status-cancelled {
+    background: rgba(248, 81, 73, 0.15);
+    color: #f85149;
+}
+
+
+.up-listings {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.up-listing-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: #0d1117;
+    border: 1px solid #21262d;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: border-color 0.2s;
+}
+
+.up-listing-item:hover {
+    border-color: #58a6ff;
+}
+
+.up-listing-name {
+    font-size: 14px;
+    color: #e6edf3;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.up-listing-name:hover {
+    color: #58a6ff;
+}
+
+.up-listing-price {
+    font-size: 14px;
+    color: #3fb950;
+    font-weight: 700;
+}
+
+.up-price-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.up-price-edit {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.up-price-input {
+    width: 90px;
+    padding: 4px 8px;
+    background: #0d1117;
+    border: 1px solid #388bfd;
+    border-radius: 6px;
+    color: #e6edf3;
+    font-size: 13px;
+}
+
+.up-edit-price-btn {
+    background: none;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    color: #8b949e;
+    font-size: 12px;
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+    max-width: 480px;
+}
+
+.up-edit-price-btn:hover {
+    border-color: #58a6ff;
+    color: #58a6ff;
+}
+
+
+.up-muted {
+    color: #8b949e;
+    font-size: 14px;
+    margin: 0;
+}
+
+.up-link {
+    color: #58a6ff;
+    text-decoration: none;
+}
+
+.up-link:hover {
+    text-decoration: underline;
+}
+
+.up-description {
+    color: #8b949e;
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 0;
+}
+
+
+@media (max-width: 600px) {
+    .up-card {
+        padding: 20px;
+    }
+
+    .up-profile-header {
+        gap: 16px;
+    }
+
+    .up-edit-btn {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .up-balance-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .up-topup-btn {
+        width: 100%;
+    }
+
+    .up-balance-amount {
+        font-size: 1.8rem;
+    }
+}
+
+
+.up-status-pending_key {
+    background: #3d2b0a;
+    color: #f0883e;
+}
+
+.up-status-key_sent {
+    background: #0d2a4a;
+    color: #58a6ff;
+}
+
+.up-status-completed {
+    background: #0d2a1a;
+    color: #3fb950;
+}
+
+.up-status-cancelled {
+    background: #2a0d0d;
+    color: #f85149;
+}
+
+
+.up-order-key-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 10px 0 4px;
+    border-top: 1px solid #21262d;
+    width: 100%;
+}
+
+.up-order-key-label {
+    font-size: 12px;
+    color: #8b949e;
+}
+
+.up-order-key {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 13px;
+    color: #3fb950;
+    letter-spacing: 1px;
+
+    word-break: break-all;
+}
+
+.up-order-actions {
+    padding: 8px 0 0;
+    width: 100%;
+}
+
+.up-confirm-btn {
+    background: #1a4731;
+    color: #3fb950;
+    border: 1px solid #3fb95055;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s;
+    width: fit-content;
+    white-space: nowrap;
+}
+
+.up-confirm-btn:hover:not(:disabled) {
+    background: #1f5c3d;
+}
+
+.up-confirm-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.up-cancel-order-btn {
+    background: transparent;
+    color: #f85149;
+    border: 1px solid #f8514955;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s;
+    width: fit-content;
+    white-space: nowrap;
+}
+
+.up-cancel-order-btn:hover:not(:disabled) {
+    background: #2a0d0d;
+}
+
+.up-cancel-order-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.up-key-input {
+    width: 255px;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: #e6edf3;
+    font-size: 13px;
+    min-width: 0;
+}
+
+.up-key-input:focus {
+    outline: none;
+    border-color: #58a6ff;
+}
+
+.up-count-alert {
+    background: #f0883e22;
+    color: #f0883e;
+    border: 1px solid #f0883e55;
+}
+
+
+.up-review-btn {
+    background: #1a2a4a;
+    color: #58a6ff;
+    border: 1px solid #58a6ff55;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+    width: fit-content;
+    align-self: flex-start;
+    white-space: nowrap;
+}
+
+.up-review-btn:hover {
+    background: #1f3a6a;
+}
+
+.up-review-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    padding-top: 8px;
+}
+
+.up-stars-row {
+    display: flex;
+    gap: 4px;
+}
+
+.up-star {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #30363d;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.1s;
+}
+
+.up-star--active {
+    color: #f0883e;
+}
+
+.up-star:hover {
+    color: #f0883e;
+}
+
+.up-review-input {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    color: #e6edf3;
+    font-size: 13px;
+    padding: 8px 12px;
+    resize: none;
+    width: 100%;
+    max-width: 480px;
+    box-sizing: border-box;
+}
+
+.up-review-input:focus {
+    outline: none;
+    border-color: #58a6ff;
+}
+
+.up-reviewed-badge {
+    font-size: 12px;
+    color: #3fb950;
+    background: #0d2a1a;
+    border: 1px solid #3fb95055;
+    border-radius: 6px;
+    padding: 4px 10px;
+}
+
+
+.up-order-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px;
+    background: #0d1117;
+    border: 1px solid #21262d;
+    border-radius: 12px;
+    transition: border-color 0.2s;
+}
+
+.up-order-card:hover {
+    border-color: #30363d;
+}
+
+.up-order-cover-link {
+    flex-shrink: 0;
+}
+
+.up-order-cover {
+    width: 64px;
+    height: 84px;
+    border-radius: 8px;
+    object-fit: cover;
+    display: block;
+    background: #161b22;
+}
+
+.up-order-cover--empty {
+    width: 64px;
+    height: 84px;
+    border-radius: 8px;
+    background: #161b22;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.up-order-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.up-order-top {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.up-order-game-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: #e6edf3;
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 280px;
+}
+
+.up-order-game-name:hover {
+    color: #58a6ff;
+}
+
+.up-order-price {
+    font-size: 15px;
+    font-weight: 700;
+    color: #3fb950;
+    white-space: nowrap;
+}
+
+.up-order-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #8b949e;
+}
+
+.up-order-id {
+    color: #6e7681;
+}
+
+.up-order-dot {
+    color: #30363d;
+}
+
+.up-order-seller-link {
+    color: #a78bfa;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.up-order-seller-link:hover {
+    color: #c4b5fd;
+    text-decoration: underline;
+}
+
+.up-order-status-col {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.up-order-status-badge {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid;
+    white-space: nowrap;
+}
+
+
+.up-listings {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.up-listing-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px;
+    background: #0d1117;
+    border: 1px solid #21262d;
+    border-radius: 10px;
+    transition: border-color 0.2s;
+}
+
+.up-listing-card:hover {
+    border-color: #30363d;
+}
+
+.up-listing-cover-link {
+    flex-shrink: 0;
+}
+
+.up-listing-cover {
+    width: 48px;
+    height: 64px;
+    border-radius: 6px;
+    object-fit: cover;
+    display: block;
+    background: #161b22;
+}
+
+.up-listing-cover--empty {
+    width: 48px;
+    height: 64px;
+    border-radius: 6px;
+    background: #161b22;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+.up-listing-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.up-listing-body-left {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.up-listing-body-right {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.up-listing-id {
+    font-size: 11px;
+    color: #6e7681;
+}
+
+
+.up-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #21262d;
+}
+
+.up-page-btn {
+    background: #161b22;
+    border: 1px solid #30363d;
+    color: #8b949e;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.up-page-btn:hover:not(:disabled) {
+    border-color: #58a6ff;
+    color: #58a6ff;
+}
+
+.up-page-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.up-page-info {
+    font-size: 13px;
+    color: #8b949e;
+    min-width: 60px;
+    text-align: center;
+}
+
+
+.up-reviews-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.up-review-card {
+    padding: 14px;
+    background: #0d1117;
+    border: 1px solid #21262d;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.up-review-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.up-review-stars {
+    font-size: 15px;
+    letter-spacing: 1px;
+}
+
+.up-review-buyer {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e6edf3;
+}
+
+.up-review-date {
+    font-size: 12px;
+    color: #6e7681;
+    margin-left: auto;
+}
+
+.up-review-text {
+    font-size: 14px;
+    color: #c9d1d9;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.up-review-game-id {
+    font-size: 12px;
+    color: #6e7681;
+    margin: 0;
+}
+
+.up-review-reply {
+    background: rgba(88, 166, 255, 0.06);
+    border-left: 3px solid #388bfd;
+    padding: 8px 12px;
+    border-radius: 0 6px 6px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-width: 480px;
+}
+
+.up-review-reply-label {
+    font-size: 11px;
+    color: #58a6ff;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.up-review-reply p {
+    font-size: 13px;
+    color: #c9d1d9;
+    margin: 0;
+}
+
+.up-review-reply-form {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 480px;
+}
+
+
+.up-comments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.up-comment-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 12px;
+    background: #0d1117;
+    border: 1px solid #21262d;
+    border-radius: 10px;
+}
+
+.up-comment-cover {
+    width: 52px;
+    height: 68px;
+    border-radius: 6px;
+    object-fit: cover;
+    flex-shrink: 0;
+    cursor: pointer;
+    background: #161b22;
+    display: block;
+    transition: opacity 0.15s;
+}
+
+.up-comment-cover:hover {
+    opacity: 0.8;
+}
+
+.up-comment-cover--empty {
+    width: 52px;
+    height: 68px;
+    border-radius: 6px;
+    background: #161b22;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.up-comment-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.up-comment-game-link {
+    background: none;
+    border: none;
+    color: #58a6ff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+    text-align: left;
+    transition: color 0.15s;
+}
+
+.up-comment-game-link:hover {
+    color: #79c0ff;
+    text-decoration: underline;
+}
+
+.up-comment-text {
+    font-size: 13px;
+    color: #c9d1d9;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.up-comment-date {
+    font-size: 11px;
+    color: #6e7681;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.up-review-game-link {
+    font-size: 12px;
+    color: #58a6ff;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.up-review-game-link:hover {
+    text-decoration: underline;
+    color: #79c0ff;
+}

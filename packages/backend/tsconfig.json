@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "strict": false,
+    "composite": true,
+    "outDir": "dist",
+    "rootDir": ".",
+    "types": ["node"],
+    "allowJs": false,
+    "noImplicitAny": false,
+    "useUnknownInCatchVariables": false
+  },
+  "references": [{ "path": "../shared" }],
+  "include": ["**/*.ts", "**/*.d.ts"],
+  "exclude": ["dist", "node_modules", "scripts"]
+}
