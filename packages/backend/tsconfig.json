@@ -10,12 +10,7 @@
     ],
     "allowJs": false,
     "noImplicitAny": false,
-    "useUnknownInCatchVariables": false,
-    "paths": {
-      "@game-catalog/shared": [
-        "../shared/src/index.ts"
-      ]
-    }
+    "useUnknownInCatchVariables": false
   },
   "references": [
     {
