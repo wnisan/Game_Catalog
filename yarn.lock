@@ -1064,7 +1064,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@game-catalog/shared@workspace:packages/shared"
   dependencies:
+    "@eslint/js": "npm:^9.39.1"
     "@types/node": "npm:^24.10.0"
+    eslint: "npm:^9.39.1"
+    prettier: "npm:^3.6.2"
     typescript: "npm:^5.9.3"
     zod: "npm:^4.1.12"
   languageName: unknown

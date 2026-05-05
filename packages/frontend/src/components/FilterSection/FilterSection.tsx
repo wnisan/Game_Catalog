@@ -12,7 +12,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
   title,
   children,
   isExpanded = true,
-  onToggle
+  onToggle,
 }) => {
   // для доступности
   const sectionId = `filter-section-${title.toLowerCase().replace(/\s+/g, '-')}`;
@@ -44,7 +44,9 @@ const FilterSection: React.FC<FilterSectionProps> = ({
           </span>
         </div>
       ) : (
-        <h3 className="filter-section__title" id={`${sectionId}-header`}>{title}</h3>
+        <h3 className="filter-section__title" id={`${sectionId}-header`}>
+          {title}
+        </h3>
       )}
 
       {isExpanded && (

@@ -3,12 +3,12 @@ import { SORT_OPTIONS } from '../../types/filters';
 import './SortSelect.css';
 
 interface SortSelectProps {
-    value: string;
-    onChange: (value: string) => void;
+  value: string;
+  onChange: (value: string) => void;
 }
 
-const SortSelect: React.FC<SortSelectProps> = ({value, onChange}) => {
- return (
+const SortSelect: React.FC<SortSelectProps> = ({ value, onChange }) => {
+  return (
     <div className="sort-select">
       <label htmlFor="sort-select" className="sort-select__label">
         Сортировать по:
@@ -19,7 +19,7 @@ const SortSelect: React.FC<SortSelectProps> = ({value, onChange}) => {
         value={value}
         onChange={(e) => onChange(e.target.value)}
       >
-        {SORT_OPTIONS.map(option => (
+        {SORT_OPTIONS.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
           </option>

@@ -1,7 +1,14 @@
-import { useState, useEffect, useCallback, lazy, Suspense, useRef } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  lazy,
+  Suspense,
+  useRef,
+} from 'react';
 import { getGames, type Game } from '../services/api';
-import GameCard from "../components/GameCard/GameCard";
-import LoadingSpinner from "../components/Loading/LoadingSpinner";
+import GameCard from '../components/GameCard/GameCard';
+import LoadingSpinner from '../components/Loading/LoadingSpinner';
 import LoadingMore from '../components/LoadingMore/LoadingMore';
 import FilterPanel from '../components/FilterPanel/FilterPanel';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
@@ -9,8 +16,12 @@ import { useFilters } from '../contexts/FiltersContext';
 import { type GameFilters } from '../types/filters';
 import './ExplorePage.css';
 
-const PopularGames = lazy(() => import('../components/PopularGames/PopularGames'));
-const UpcomingGames = lazy(() => import('../components/UpcomingGames/UpcomingGames'));
+const PopularGames = lazy(
+  () => import('../components/PopularGames/PopularGames')
+);
+const UpcomingGames = lazy(
+  () => import('../components/UpcomingGames/UpcomingGames')
+);
 
 const LIMIT = 20;
 
@@ -25,8 +36,7 @@ const ExplorePage = () => {
 
   const offsetRef = useRef(0);
 
-  const hasMore =
-    totalCount !== null ? allGames.length < totalCount : true;
+  const hasMore = totalCount !== null ? allGames.length < totalCount : true;
 
   const fetchMoreGames = useCallback(async (): Promise<Game[]> => {
     try {
@@ -39,13 +49,11 @@ const ExplorePage = () => {
       );
 
       const newGames =
-        typeof result === 'object' && 'games' in result
-          ? result.games
-          : result;
+        typeof result === 'object' && 'games' in result ? result.games : result;
 
-      setAllGames(prev => {
-        const ids = new Set(prev.map(g => g.id));
-        const unique = newGames.filter(g => !ids.has(g.id));
+      setAllGames((prev) => {
+        const ids = new Set(prev.map((g) => g.id));
+        const unique = newGames.filter((g) => !ids.has(g.id));
         return [...prev, ...unique];
       });
 
@@ -59,11 +67,11 @@ const ExplorePage = () => {
   const {
     isLoading: isLoadingMore,
     sentinelRef,
-    reset: resetInfiniteScroll
+    reset: resetInfiniteScroll,
   } = useInfiniteScroll(fetchMoreGames, {
     enabled: !initialLoading && !error && hasMore,
     threshold: 300,
-    rootMargin: '200px'
+    rootMargin: '200px',
   });
 
   const loadInitialGames = async () => {
@@ -86,7 +94,7 @@ const ExplorePage = () => {
 
       offsetRef.current = LIMIT;
     } catch {
-            setError('Не удалось загрузить игры');
+      setError('Не удалось загрузить игры');
     } finally {
       setInitialLoading(false);
     }
@@ -98,7 +106,7 @@ const ExplorePage = () => {
   }, [filters]);
 
   useEffect(() => {
-    const handler = () => setIsFilterPanelOpen(p => !p);
+    const handler = () => setIsFilterPanelOpen((p) => !p);
     window.addEventListener('toggleFilters', handler);
     return () => window.removeEventListener('toggleFilters', handler);
   }, []);
@@ -110,10 +118,36 @@ const ExplorePage = () => {
   return (
     <div className="explore-page">
       <header className="explore-page__header">
-        <Suspense fallback={<div style={{ height: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><LoadingSpinner /></div>}>
+        <Suspense
+          fallback={
+            <div
+              style={{
+                height: '220px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <LoadingSpinner />
+            </div>
+          }
+        >
           <PopularGames />
         </Suspense>
-        <Suspense fallback={<div style={{ height: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><LoadingSpinner /></div>}>
+        <Suspense
+          fallback={
+            <div
+              style={{
+                height: '220px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <LoadingSpinner />
+            </div>
+          }
+        >
           <UpcomingGames />
         </Suspense>
         <h1>Каталог игр</h1>
@@ -126,11 +160,22 @@ const ExplorePage = () => {
       />
 
       {!initialLoading && (
-        <div className="explore-page__results-info" id="main-content" tabIndex={-1}>
+        <div
+          className="explore-page__results-info"
+          id="main-content"
+          tabIndex={-1}
+        >
           <h2>
             {filters.search ? `Поиск: "${filters.search}"` : 'Все игры'}
-            <span className="explore-page__count" aria-label={`Всего игр: ${totalCount !== null ? totalCount : allGames.length > 0 ? allGames.length : 0}`}>
-              {totalCount !== null ? ` (${totalCount} игр)` : allGames.length > 0 ? ` (${allGames.length} игр)` : ' (0 игр)'}
+            <span
+              className="explore-page__count"
+              aria-label={`Всего игр: ${totalCount !== null ? totalCount : allGames.length > 0 ? allGames.length : 0}`}
+            >
+              {totalCount !== null
+                ? ` (${totalCount} игр)`
+                : allGames.length > 0
+                  ? ` (${allGames.length} игр)`
+                  : ' (0 игр)'}
             </span>
           </h2>
         </div>

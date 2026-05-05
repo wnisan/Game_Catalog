@@ -7,10 +7,9 @@ import prettier from 'eslint-plugin-prettier'
 import prettierConfig from 'eslint-config-prettier'
 
 export default tseslint.config(
-  { ignores: ['dist'] },
+  { ignores: ['dist', 'node_modules'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
-  reactHooks.configs.recommended,
   {
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
@@ -18,10 +17,14 @@ export default tseslint.config(
       globals: globals.browser,
     },
     plugins: {
+    
+      'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
       prettier: prettier,
     },
     rules: {
+      
+      ...reactHooks.configs.recommended.rules,
       ...reactRefresh.configs.vite.rules,
       ...prettierConfig.rules,
       'prettier/prettier': 'error',

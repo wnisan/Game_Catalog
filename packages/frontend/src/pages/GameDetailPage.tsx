@@ -1,6 +1,12 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { api, type Game, addFavorite, removeFavorite, checkFavorite } from '../services/api';
+import {
+  api,
+  type Game,
+  addFavorite,
+  removeFavorite,
+  checkFavorite,
+} from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useFilters } from '../contexts/FiltersContext';
 import { useInfiniteCarousel } from '../hooks/useInfiniteCarousel';
@@ -21,11 +27,17 @@ const GameDetailPage = () => {
   const [currentScreenshotIndex, setCurrentScreenshotIndex] = useState(0);
   const thumbnailsRef = useRef<HTMLDivElement>(null);
 
-
   useEffect(() => {
     if (!thumbnailsRef.current) return;
-    const thumb = thumbnailsRef.current.children[currentScreenshotIndex] as HTMLElement;
-    if (thumb) thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    const thumb = thumbnailsRef.current.children[
+      currentScreenshotIndex
+    ] as HTMLElement;
+    if (thumb)
+      thumb.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      });
   }, [currentScreenshotIndex]);
   const [isFavorited, setIsFavorited] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
@@ -49,7 +61,13 @@ const GameDetailPage = () => {
     }
   };
 
-  const { index: similarIndex, next: similarNext, prev: similarPrev, trackRef: similarTrackRef, withTransition: similarWithTransition } = useInfiniteCarousel(game?.similar_games?.length || 0, 6);
+  const {
+    index: similarIndex,
+    next: similarNext,
+    prev: similarPrev,
+    trackRef: similarTrackRef,
+    withTransition: similarWithTransition,
+  } = useInfiniteCarousel(game?.similar_games?.length || 0, 6);
 
   const recentCarousel = useInfiniteCarousel(
     Math.max(recentlyVisited.length, 6),
@@ -84,14 +102,17 @@ const GameDetailPage = () => {
 
         if (gameData?.id) {
           try {
-            const favCountResponse = await api.get(`/games/${gameData.id}/favorite-count`);
+            const favCountResponse = await api.get(
+              `/games/${gameData.id}/favorite-count`
+            );
             setFavoriteCount(favCountResponse.data.count || 0);
 
             if (isAuthenticated) {
-       
               console.log('Recording visit for game:', gameData.id);
               try {
-                const visitResponse = await api.post('/games/visit', { gameId: gameData.id });
+                const visitResponse = await api.post('/games/visit', {
+                  gameId: gameData.id,
+                });
                 console.log('Visit response:', visitResponse.data);
 
                 const recentResponse = await api.get('/games/recently-visited');
@@ -101,11 +122,19 @@ const GameDetailPage = () => {
                 console.error('Error recording visit:', visitError);
 
                 try {
-                  const recentResponse = await api.get('/games/recently-visited');
-                  console.log('Recently visited response (fallback):', recentResponse.data);
+                  const recentResponse = await api.get(
+                    '/games/recently-visited'
+                  );
+                  console.log(
+                    'Recently visited response (fallback):',
+                    recentResponse.data
+                  );
                   setRecentlyVisited(recentResponse.data.games || []);
                 } catch (recentError) {
-                  console.error('Error loading recently visited games:', recentError);
+                  console.error(
+                    'Error loading recently visited games:',
+                    recentError
+                  );
                   setRecentlyVisited([]);
                 }
               }
@@ -146,9 +175,14 @@ const GameDetailPage = () => {
     loadFavorite();
   }, [isAuthenticated, game?.id]);
 
-
-
-  const formatCountdown = (targetIso?: string): { days: number; hours: number; minutes: number; seconds: number } | null => {
+  const formatCountdown = (
+    targetIso?: string
+  ): {
+    days: number;
+    hours: number;
+    minutes: number;
+    seconds: number;
+  } | null => {
     if (!targetIso) return null;
     const target = new Date(targetIso).getTime();
     const diff = Math.max(0, target - nowTick);
@@ -167,8 +201,13 @@ const GameDetailPage = () => {
       return game.cover.url;
     }
 
-    const imageId = game.cover.url.split('/').pop()?.replace(/\.(jpg|png)$/, '');
-    return imageId ? `https://images.igdb.com/igdb/image/upload/t_cover_big/${imageId}.jpg` : null;
+    const imageId = game.cover.url
+      .split('/')
+      .pop()
+      ?.replace(/\.(jpg|png)$/, '');
+    return imageId
+      ? `https://images.igdb.com/igdb/image/upload/t_cover_big/${imageId}.jpg`
+      : null;
   };
 
   const formatDate = (dateString?: string): string => {
@@ -177,37 +216,63 @@ const GameDetailPage = () => {
       return new Date(dateString).toLocaleDateString('ru-RU', {
         year: 'numeric',
         month: 'long',
-        day: 'numeric'
+        day: 'numeric',
       });
     } catch {
       return 'Неизвестно';
     }
   };
 
-  const getSocialMediaIcon = (url: string): { icon: string; color: string } | null => {
+  const getSocialMediaIcon = (
+    url: string
+  ): { icon: string; color: string } | null => {
     if (url.includes('twitter.com') || url.includes('x.com')) {
-      return { icon: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/twitter.svg', color: '#1DA1F2' };
+      return {
+        icon: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/twitter.svg',
+        color: '#1DA1F2',
+      };
     }
     if (url.includes('facebook.com')) {
-      return { icon: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/facebook.svg', color: '#1877F2' };
+      return {
+        icon: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/facebook.svg',
+        color: '#1877F2',
+      };
     }
     if (url.includes('instagram.com')) {
-      return { icon: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/instagram.svg', color: '#E4405F' };
+      return {
+        icon: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/instagram.svg',
+        color: '#E4405F',
+      };
     }
     if (url.includes('youtube.com')) {
-      return { icon: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/youtube.svg', color: '#FF0000' };
+      return {
+        icon: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/youtube.svg',
+        color: '#FF0000',
+      };
     }
     if (url.includes('twitch.tv')) {
-      return { icon: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/twitch.svg', color: '#9146FF' };
+      return {
+        icon: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/twitch.svg',
+        color: '#9146FF',
+      };
     }
     if (url.includes('discord.com')) {
-      return { icon: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/discord.svg', color: '#5865F2' };
+      return {
+        icon: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/discord.svg',
+        color: '#5865F2',
+      };
     }
     if (url.includes('reddit.com')) {
-      return { icon: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/reddit.svg', color: '#FF4500' };
+      return {
+        icon: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/reddit.svg',
+        color: '#FF4500',
+      };
     }
     if (url.includes('tiktok.com')) {
-      return { icon: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/tiktok.svg', color: '#000000' };
+      return {
+        icon: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/tiktok.svg',
+        color: '#000000',
+      };
     }
     return null;
   };
@@ -224,11 +289,17 @@ const GameDetailPage = () => {
     return 'Сайт';
   };
 
-
-
   if (loading) {
     return (
-      <div className="game-detail-page" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div
+        className="game-detail-page"
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
         <LoadingSpinner />
       </div>
     );
@@ -239,7 +310,10 @@ const GameDetailPage = () => {
       <div className="game-detail-page">
         <div className="game-detail-page__error">
           <h2>{error || 'Игра не найдена'}</h2>
-          <button onClick={() => navigate('/')} className="game-detail-page__back-btn">
+          <button
+            onClick={() => navigate('/')}
+            className="game-detail-page__back-btn"
+          >
             Назад к играм
           </button>
         </div>
@@ -247,37 +321,81 @@ const GameDetailPage = () => {
     );
   }
 
-  const hasSocialLinks = !!(game.websites && game.websites.some(w => w.url && getSocialMediaIcon(w.url)));
+  const hasSocialLinks = !!(
+    game.websites &&
+    game.websites.some((w) => w.url && getSocialMediaIcon(w.url))
+  );
 
   const screenshotsJSX = () => (
     <div className="game-detail-page__screenshots">
       <div className="game-detail-page__screenshot-carousel">
         <button
           className="game-detail-page__screenshot-nav game-detail-page__screenshot-nav--prev"
-          onClick={() => setCurrentScreenshotIndex((prev) => (prev - 1 + game!.screenshots!.length) % game!.screenshots!.length)}
+          onClick={() =>
+            setCurrentScreenshotIndex(
+              (prev) =>
+                (prev - 1 + game!.screenshots!.length) %
+                game!.screenshots!.length
+            )
+          }
           aria-label="Предыдущий скриншот"
           disabled={game!.screenshots!.length === 1}
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
         </button>
         <div className="game-detail-page__screenshot-main">
-          <img src={game!.screenshots![currentScreenshotIndex].url} alt={`Скриншот ${currentScreenshotIndex + 1}`} />
-          <div className="game-detail-page__screenshot-counter">{currentScreenshotIndex + 1} / {game!.screenshots!.length}</div>
+          <img
+            src={game!.screenshots![currentScreenshotIndex].url}
+            alt={`Скриншот ${currentScreenshotIndex + 1}`}
+          />
+          <div className="game-detail-page__screenshot-counter">
+            {currentScreenshotIndex + 1} / {game!.screenshots!.length}
+          </div>
         </div>
         <button
           className="game-detail-page__screenshot-nav game-detail-page__screenshot-nav--next"
-          onClick={() => setCurrentScreenshotIndex((prev) => (prev + 1) % game!.screenshots!.length)}
+          onClick={() =>
+            setCurrentScreenshotIndex(
+              (prev) => (prev + 1) % game!.screenshots!.length
+            )
+          }
           aria-label="Следующий скриншот"
           disabled={game!.screenshots!.length === 1}
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M9 18l6-6-6-6" />
+          </svg>
         </button>
       </div>
       {game!.screenshots!.length > 1 && (
-        <div ref={thumbnailsRef} className="game-detail-page__screenshot-thumbnails" data-count={game!.screenshots!.length}>
+        <div
+          ref={thumbnailsRef}
+          className="game-detail-page__screenshot-thumbnails"
+          data-count={game!.screenshots!.length}
+        >
           {game!.screenshots!.map((screenshot, index) => (
-            <button key={index} className={`game-detail-page__screenshot-thumb ${index === currentScreenshotIndex ? 'active' : ''}`}
-              onClick={() => setCurrentScreenshotIndex(index)} aria-label={`Просмотреть скриншот ${index + 1}`}>
+            <button
+              key={index}
+              className={`game-detail-page__screenshot-thumb ${index === currentScreenshotIndex ? 'active' : ''}`}
+              onClick={() => setCurrentScreenshotIndex(index)}
+              aria-label={`Просмотреть скриншот ${index + 1}`}
+            >
               <img src={screenshot.url} alt={`Миниатюра ${index + 1}`} />
             </button>
           ))}
@@ -289,7 +407,10 @@ const GameDetailPage = () => {
   return (
     <div className="game-detail-page">
       <div className="game-detail-page__top-row">
-        <button onClick={() => navigate(-1)} className="game-detail-page__back-btn">
+        <button
+          onClick={() => navigate(-1)}
+          className="game-detail-page__back-btn"
+        >
           ← Назад
         </button>
 
@@ -303,20 +424,36 @@ const GameDetailPage = () => {
                 return (
                   <div className="game-detail-page__countdown-timer">
                     <div className="game-detail-page__countdown-item">
-                      <span className="game-detail-page__countdown-value">{countdown.days}</span>
-                      <span className="game-detail-page__countdown-label">дней</span>
+                      <span className="game-detail-page__countdown-value">
+                        {countdown.days}
+                      </span>
+                      <span className="game-detail-page__countdown-label">
+                        дней
+                      </span>
                     </div>
                     <div className="game-detail-page__countdown-item">
-                      <span className="game-detail-page__countdown-value">{String(countdown.hours).padStart(2, '0')}</span>
-                      <span className="game-detail-page__countdown-label">часов</span>
+                      <span className="game-detail-page__countdown-value">
+                        {String(countdown.hours).padStart(2, '0')}
+                      </span>
+                      <span className="game-detail-page__countdown-label">
+                        часов
+                      </span>
                     </div>
                     <div className="game-detail-page__countdown-item">
-                      <span className="game-detail-page__countdown-value">{String(countdown.minutes).padStart(2, '0')}</span>
-                      <span className="game-detail-page__countdown-label">минут</span>
+                      <span className="game-detail-page__countdown-value">
+                        {String(countdown.minutes).padStart(2, '0')}
+                      </span>
+                      <span className="game-detail-page__countdown-label">
+                        минут
+                      </span>
                     </div>
                     <div className="game-detail-page__countdown-item">
-                      <span className="game-detail-page__countdown-value">{String(countdown.seconds).padStart(2, '0')}</span>
-                      <span className="game-detail-page__countdown-label">секунд</span>
+                      <span className="game-detail-page__countdown-value">
+                        {String(countdown.seconds).padStart(2, '0')}
+                      </span>
+                      <span className="game-detail-page__countdown-label">
+                        секунд
+                      </span>
                     </div>
                   </div>
                 );
@@ -335,7 +472,9 @@ const GameDetailPage = () => {
           onMouseLeave={() => setIsHoveringCover(false)}
         >
           {playTrailer && game.trailerVideoId ? (
-            <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            <div
+              style={{ position: 'relative', width: '100%', height: '100%' }}
+            >
               <iframe
                 className="game-detail-page__trailer"
                 src={`https://www.youtube.com/embed/${game.trailerVideoId}?autoplay=1&mute=1&controls=0`}
@@ -381,7 +520,11 @@ const GameDetailPage = () => {
             <button
               type="button"
               className={`game-detail-page__favorite ${isFavorited ? 'добавлено в избранное' : ''}`}
-              aria-label={isFavorited ? 'Удаление из избранного' : 'Добавление в избранное'}
+              aria-label={
+                isFavorited
+                  ? 'Удаление из избранного'
+                  : 'Добавление в избранное'
+              }
               aria-pressed={isFavorited}
               disabled={favoriteLoading}
               onClick={async () => {
@@ -395,21 +538,27 @@ const GameDetailPage = () => {
                   if (isFavorited) {
                     await removeFavorite(game.id);
                     setIsFavorited(false);
-                    setFavoriteCount(prev => Math.max(0, prev - 1));
+                    setFavoriteCount((prev) => Math.max(0, prev - 1));
                   } else {
                     await addFavorite(game.id);
                     setIsFavorited(true);
-                    setFavoriteCount(prev => prev + 1);
+                    setFavoriteCount((prev) => prev + 1);
                   }
                 } finally {
                   setFavoriteLoading(false);
                 }
               }}
-              title={isFavorited ? 'Удаление из избранного' : 'Добавление в избранное'}
+              title={
+                isFavorited
+                  ? 'Удаление из избранного'
+                  : 'Добавление в избранное'
+              }
             >
               <span aria-hidden="true">{isFavorited ? '❤️' : '🤍'}</span>
               {favoriteCount > 0 && (
-                <span className="game-detail-page__favorite-count">{favoriteCount}</span>
+                <span className="game-detail-page__favorite-count">
+                  {favoriteCount}
+                </span>
               )}
             </button>
           </div>
@@ -429,7 +578,6 @@ const GameDetailPage = () => {
                 <span>{formatDate(game.releaseDate)}</span>
               </div>
             )}
-
           </div>
           {game.summary && (
             <div className="game-detail-page__description-block">
@@ -438,7 +586,11 @@ const GameDetailPage = () => {
             </div>
           )}
 
-          <SellerBlock gameId={game.id} gameName={game.name} onOpenCart={() => window.dispatchEvent(new Event('openCart'))} />
+          <SellerBlock
+            gameId={game.id}
+            gameName={game.name}
+            onOpenCart={() => window.dispatchEvent(new Event('openCart'))}
+          />
         </div>
       </div>
 
@@ -449,17 +601,32 @@ const GameDetailPage = () => {
         />
       )}
 
-    
       {trailerModal && game.trailerVideoId && (
-        <div className="game-detail-page__trailer-overlay" onClick={() => setTrailerModal(false)}>
-          <div className="game-detail-page__trailer-modal" onClick={e => e.stopPropagation()}>
-            <button className="game-detail-page__trailer-close" onClick={() => setTrailerModal(false)}>✕</button>
+        <div
+          className="game-detail-page__trailer-overlay"
+          onClick={() => setTrailerModal(false)}
+        >
+          <div
+            className="game-detail-page__trailer-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="game-detail-page__trailer-close"
+              onClick={() => setTrailerModal(false)}
+            >
+              ✕
+            </button>
             <iframe
               src={`https://www.youtube.com/embed/${game.trailerVideoId}?autoplay=1&controls=1`}
               title={`${game.name} трейлер`}
               allow="autoplay; encrypted-media"
               allowFullScreen
-              style={{ width: '100%', height: '100%', border: 'none', borderRadius: 12 }}
+              style={{
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                borderRadius: 12,
+              }}
             />
           </div>
         </div>
@@ -468,15 +635,24 @@ const GameDetailPage = () => {
       <div className="game-detail-page__content">
         <div className="game-detail-page__info">
           {(() => {
-            const hasScreenshots = !!(game.screenshots && game.screenshots.length > 0);
-            const hasLeft = hasSocialLinks || (game.genres && game.genres.length > 0) || (game.platforms && game.platforms.length > 0);
+            const hasScreenshots = !!(
+              game.screenshots && game.screenshots.length > 0
+            );
+            const hasLeft =
+              hasSocialLinks ||
+              (game.genres && game.genres.length > 0) ||
+              (game.platforms && game.platforms.length > 0);
 
             const leftBlocks = [
               game.genres && game.genres.length > 0 && (
                 <div key="genres" className="game-detail-page__genres">
                   <h2>Жанры</h2>
                   <div className="game-detail-page__tags">
-                    {game.genres.map(genre => <span key={genre.id} className="game-detail-page__tag">{genre.name}</span>)}
+                    {game.genres.map((genre) => (
+                      <span key={genre.id} className="game-detail-page__tag">
+                        {genre.name}
+                      </span>
+                    ))}
                   </div>
                 </div>
               ),
@@ -484,7 +660,11 @@ const GameDetailPage = () => {
                 <div key="platforms" className="game-detail-page__platforms">
                   <h2>Платформы</h2>
                   <div className="game-detail-page__tags">
-                    {game.platforms.map(p => <span key={p.id} className="game-detail-page__tag">{p.name}</span>)}
+                    {game.platforms.map((p) => (
+                      <span key={p.id} className="game-detail-page__tag">
+                        {p.name}
+                      </span>
+                    ))}
                   </div>
                 </div>
               ),
@@ -492,17 +672,26 @@ const GameDetailPage = () => {
                 <div key="social" className="game-detail-page__social-links">
                   <h2>Социальные сети</h2>
                   <div className="game-detail-page__social-icons">
-                    {game.websites?.filter(w => w.url && getSocialMediaIcon(w.url)).map((website, index) => {
-                      const iconData = getSocialMediaIcon(website.url);
-                      const name = getSocialMediaName(website.url);
-                      return iconData ? (
-                        <a key={index} href={website.url} target="_blank" rel="noopener noreferrer"
-                          className="game-detail-page__social-icon" title={name} aria-label={`Перейти на ${name}`}
-                          style={{ backgroundColor: iconData.color }}>
-                          <img src={iconData.icon} alt={name} />
-                        </a>
-                      ) : null;
-                    })}
+                    {game.websites
+                      ?.filter((w) => w.url && getSocialMediaIcon(w.url))
+                      .map((website, index) => {
+                        const iconData = getSocialMediaIcon(website.url);
+                        const name = getSocialMediaName(website.url);
+                        return iconData ? (
+                          <a
+                            key={index}
+                            href={website.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="game-detail-page__social-icon"
+                            title={name}
+                            aria-label={`Перейти на ${name}`}
+                            style={{ backgroundColor: iconData.color }}
+                          >
+                            <img src={iconData.icon} alt={name} />
+                          </a>
+                        ) : null;
+                      })}
                   </div>
                 </div>
               ),
@@ -512,7 +701,9 @@ const GameDetailPage = () => {
               // Normal: left 35% | screenshots 65%
               return (
                 <div className="game-detail-page__bottom-section">
-                  <div className="game-detail-page__left-column">{leftBlocks}</div>
+                  <div className="game-detail-page__left-column">
+                    {leftBlocks}
+                  </div>
                   <div className="game-detail-page__right-column">
                     {screenshotsJSX()}
                   </div>
@@ -538,15 +729,17 @@ const GameDetailPage = () => {
             return null;
           })()}
 
-       
           {game.language_supports && game.language_supports.length > 0 && (
             <div className="game-detail-page__platforms">
               <h2>Поддерживаемые языки</h2>
               <div className="game-detail-page__tags">
-                {Array.from(new Set(game.language_supports
-                  .filter(ls => ls.language)
-                  .map(ls => ls.language)
-                )).map((lang, index) => (
+                {Array.from(
+                  new Set(
+                    game.language_supports
+                      .filter((ls) => ls.language)
+                      .map((ls) => ls.language)
+                  )
+                ).map((lang, index) => (
                   <span key={index} className="game-detail-page__tag">
                     {lang}
                   </span>
@@ -555,12 +748,11 @@ const GameDetailPage = () => {
             </div>
           )}
 
-          
           {game.engines && game.engines.length > 0 && (
             <div className="game-detail-page__engines">
               <h2>Игровые движки</h2>
               <div className="game-detail-page__tags">
-                {game.engines.map(engine => (
+                {game.engines.map((engine) => (
                   <span key={engine.id} className="game-detail-page__tag">
                     {engine.name}
                   </span>
@@ -580,10 +772,14 @@ const GameDetailPage = () => {
               <h2>Темы</h2>
               <div className="game-detail-page__tags">
                 {game.themes
-                  .filter((theme): theme is { id: number; name: string } =>
-                    typeof theme === 'object' && theme !== null && 'name' in theme && theme.name !== undefined
+                  .filter(
+                    (theme): theme is { id: number; name: string } =>
+                      typeof theme === 'object' &&
+                      theme !== null &&
+                      'name' in theme &&
+                      theme.name !== undefined
                   )
-                  .map(theme => (
+                  .map((theme) => (
                     <span key={theme.id} className="game-detail-page__tag">
                       {theme.name}
                     </span>
@@ -597,10 +793,14 @@ const GameDetailPage = () => {
               <h2>Игровые режимы</h2>
               <div className="game-detail-page__tags">
                 {game.game_modes
-                  .filter((mode): mode is { id: number; name: string } =>
-                    typeof mode === 'object' && mode !== null && 'name' in mode && mode.name !== undefined
+                  .filter(
+                    (mode): mode is { id: number; name: string } =>
+                      typeof mode === 'object' &&
+                      mode !== null &&
+                      'name' in mode &&
+                      mode.name !== undefined
                   )
-                  .map(mode => (
+                  .map((mode) => (
                     <span key={mode.id} className="game-detail-page__tag">
                       {mode.name}
                     </span>
@@ -616,12 +816,19 @@ const GameDetailPage = () => {
               <h2>Ключевые слова</h2>
               <div className="game-detail-page__tags">
                 {game.keywords
-                  .filter((keyword): keyword is { id: number; name: string } =>
-                    typeof keyword === 'object' && keyword !== null && 'name' in keyword && keyword.name !== undefined
+                  .filter(
+                    (keyword): keyword is { id: number; name: string } =>
+                      typeof keyword === 'object' &&
+                      keyword !== null &&
+                      'name' in keyword &&
+                      keyword.name !== undefined
                   )
                   .slice(0, 10)
-                  .map(keyword => (
-                    <span key={keyword.id} className="game-detail-page__tag game-detail-page__tag--small">
+                  .map((keyword) => (
+                    <span
+                      key={keyword.id}
+                      className="game-detail-page__tag game-detail-page__tag--small"
+                    >
                       {keyword.name}
                     </span>
                   ))}
@@ -634,11 +841,20 @@ const GameDetailPage = () => {
               <h2>Точки зрения игрока</h2>
               <div className="game-detail-page__tags">
                 {game.player_perspectives
-                  .filter((perspective): perspective is { id: number; name: string } =>
-                    typeof perspective === 'object' && perspective !== null && 'name' in perspective && perspective.name !== undefined
+                  .filter(
+                    (
+                      perspective
+                    ): perspective is { id: number; name: string } =>
+                      typeof perspective === 'object' &&
+                      perspective !== null &&
+                      'name' in perspective &&
+                      perspective.name !== undefined
                   )
-                  .map(perspective => (
-                    <span key={perspective.id} className="game-detail-page__tag">
+                  .map((perspective) => (
+                    <span
+                      key={perspective.id}
+                      className="game-detail-page__tag"
+                    >
                       {perspective.name}
                     </span>
                   ))}
@@ -658,7 +874,14 @@ const GameDetailPage = () => {
                 onClick={prevSimilarSlide}
                 aria-label="Предыдущие игры"
               >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
                   <path d="M15 18l-6-6 6-6" />
                 </svg>
               </button>
@@ -669,16 +892,19 @@ const GameDetailPage = () => {
                 className="game-detail-page__similar-track"
                 style={{
                   transform: `translateX(-${similarIndex * 220}px)`,
-                  transition: similarWithTransition ? 'transform 0.4s ease' : 'none'
+                  transition: similarWithTransition
+                    ? 'transform 0.4s ease'
+                    : 'none',
                 }}
               >
                 {(() => {
-                  if (!game?.similar_games || game.similar_games.length === 0) return null;
+                  if (!game?.similar_games || game.similar_games.length === 0)
+                    return null;
                   const VISIBLE_CARDS = 6;
                   const extendedSimilar = [
                     ...game.similar_games.slice(-VISIBLE_CARDS),
                     ...game.similar_games,
-                    ...game.similar_games.slice(0, VISIBLE_CARDS)
+                    ...game.similar_games.slice(0, VISIBLE_CARDS),
                   ];
                   return extendedSimilar.map((similarGame, index) => {
                     const gameSlug = similarGame.slug || similarGame.id;
@@ -689,9 +915,14 @@ const GameDetailPage = () => {
                         onClick={() => navigate(`/game/${gameSlug}`)}
                       >
                         {similarGame.cover?.url ? (
-                          <img src={similarGame.cover.url} alt={similarGame.name} />
+                          <img
+                            src={similarGame.cover.url}
+                            alt={similarGame.name}
+                          />
                         ) : (
-                          <div className="game-detail-page__similar-no-cover">Нет изображения</div>
+                          <div className="game-detail-page__similar-no-cover">
+                            Нет изображения
+                          </div>
                         )}
                         <div className="game-detail-page__similar-info">
                           <h3>{similarGame.name}</h3>
@@ -700,18 +931,27 @@ const GameDetailPage = () => {
                               {Math.round(similarGame.rating)}/100
                             </div>
                           )}
-                          {(similarGame as any).genres && (similarGame as any).genres.length > 0 && (
-                            <div className="game-detail-page__similar-genres">
-                              {(similarGame as any).genres
-                                .filter((genre: any) => genre !== undefined && genre !== null && genre.name !== undefined)
-                                .slice(0, 2)
-                                .map((genre: any) => (
-                                  <span key={genre.id} className="game-detail-page__similar-genre-tag">
-                                    {genre.name}
-                                  </span>
-                                ))}
-                            </div>
-                          )}
+                          {(similarGame as any).genres &&
+                            (similarGame as any).genres.length > 0 && (
+                              <div className="game-detail-page__similar-genres">
+                                {(similarGame as any).genres
+                                  .filter(
+                                    (genre: any) =>
+                                      genre !== undefined &&
+                                      genre !== null &&
+                                      genre.name !== undefined
+                                  )
+                                  .slice(0, 2)
+                                  .map((genre: any) => (
+                                    <span
+                                      key={genre.id}
+                                      className="game-detail-page__similar-genre-tag"
+                                    >
+                                      {genre.name}
+                                    </span>
+                                  ))}
+                              </div>
+                            )}
                         </div>
                       </div>
                     );
@@ -725,7 +965,14 @@ const GameDetailPage = () => {
                 onClick={nextSimilarSlide}
                 aria-label="Следующие игры"
               >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
                   <path d="M9 18l6-6-6-6" />
                 </svg>
               </button>
@@ -738,9 +985,10 @@ const GameDetailPage = () => {
         <div className="game-detail-page__recent">
           <h2>Недавно просмотренные</h2>
 
-        
           {recentlyVisited.length <= 5 && (
-            <div className={`game-detail-page__recent-grid ${recentlyVisited.length > 0 && recentlyVisited.length <= 5 ? 'compact' : ''}`}>
+            <div
+              className={`game-detail-page__recent-grid ${recentlyVisited.length > 0 && recentlyVisited.length <= 5 ? 'compact' : ''}`}
+            >
               {recentlyVisited.map((recentGame) => {
                 const gameSlug = recentGame.slug || recentGame.id;
                 return (
@@ -750,13 +998,19 @@ const GameDetailPage = () => {
                     onClick={() => navigate(`/game/${gameSlug}`)}
                   >
                     {recentGame.cover?.url ? (
-                      <img src={
-                        recentGame.cover.url.startsWith('http://') || recentGame.cover.url.startsWith('https://')
-                          ? recentGame.cover.url
-                          : `https://images.igdb.com/igdb/image/upload/t_cover_big/${recentGame.cover.url.split('/').pop()?.replace('.jpg', '').replace('.png', '')}.jpg`
-                      } alt={recentGame.name} />
+                      <img
+                        src={
+                          recentGame.cover.url.startsWith('http://') ||
+                          recentGame.cover.url.startsWith('https://')
+                            ? recentGame.cover.url
+                            : `https://images.igdb.com/igdb/image/upload/t_cover_big/${recentGame.cover.url.split('/').pop()?.replace('.jpg', '').replace('.png', '')}.jpg`
+                        }
+                        alt={recentGame.name}
+                      />
                     ) : (
-                      <div className="game-detail-page__recent-no-cover">Нет изображения</div>
+                      <div className="game-detail-page__recent-no-cover">
+                        Нет изображения
+                      </div>
                     )}
                     <div className="game-detail-page__recent-info">
                       <h3>{recentGame.name}</h3>
@@ -768,10 +1022,18 @@ const GameDetailPage = () => {
                       {recentGame.genres && recentGame.genres.length > 0 && (
                         <div className="game-detail-page__recent-genres">
                           {recentGame.genres
-                            .filter((genre): genre is { id: number; name: string } => genre !== undefined && genre !== null && genre.name !== undefined)
+                            .filter(
+                              (genre): genre is { id: number; name: string } =>
+                                genre !== undefined &&
+                                genre !== null &&
+                                genre.name !== undefined
+                            )
                             .slice(0, 2)
-                            .map(genre => (
-                              <span key={genre.id} className="game-detail-page__recent-genre-tag">
+                            .map((genre) => (
+                              <span
+                                key={genre.id}
+                                className="game-detail-page__recent-genre-tag"
+                              >
                                 {genre.name}
                               </span>
                             ))}
@@ -784,7 +1046,6 @@ const GameDetailPage = () => {
             </div>
           )}
 
-          
           {recentlyVisited.length >= 6 && (
             <div className="game-detail-page__recent-carousel">
               <button
@@ -792,7 +1053,14 @@ const GameDetailPage = () => {
                 onClick={recentCarousel.prev}
                 aria-label="Предыдущие игры"
               >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
                   <path d="M15 18l-6-6 6-6" />
                 </svg>
               </button>
@@ -803,13 +1071,15 @@ const GameDetailPage = () => {
                   className="game-detail-page__recent-track"
                   style={{
                     transform: `translateX(-${recentCarousel.index * 220}px)`,
-                    transition: recentCarousel.withTransition ? 'transform 0.4s ease' : 'none'
+                    transition: recentCarousel.withTransition
+                      ? 'transform 0.4s ease'
+                      : 'none',
                   }}
                 >
                   {[
                     ...recentlyVisited.slice(-6),
                     ...recentlyVisited,
-                    ...recentlyVisited.slice(0, 6)
+                    ...recentlyVisited.slice(0, 6),
                   ].map((recentGame, index) => {
                     const gameSlug = recentGame.slug || recentGame.id;
                     return (
@@ -819,13 +1089,19 @@ const GameDetailPage = () => {
                         onClick={() => navigate(`/game/${gameSlug}`)}
                       >
                         {recentGame.cover?.url ? (
-                          <img src={
-                            recentGame.cover.url.startsWith('http://') || recentGame.cover.url.startsWith('https://')
-                              ? recentGame.cover.url
-                              : `https://images.igdb.com/igdb/image/upload/t_cover_big/${recentGame.cover.url.split('/').pop()?.replace('.jpg', '').replace('.png', '')}.jpg`
-                          } alt={recentGame.name} />
+                          <img
+                            src={
+                              recentGame.cover.url.startsWith('http://') ||
+                              recentGame.cover.url.startsWith('https://')
+                                ? recentGame.cover.url
+                                : `https://images.igdb.com/igdb/image/upload/t_cover_big/${recentGame.cover.url.split('/').pop()?.replace('.jpg', '').replace('.png', '')}.jpg`
+                            }
+                            alt={recentGame.name}
+                          />
                         ) : (
-                          <div className="game-detail-page__recent-no-cover">Нет изображения</div>
+                          <div className="game-detail-page__recent-no-cover">
+                            Нет изображения
+                          </div>
                         )}
                         <div className="game-detail-page__recent-info">
                           <h3>{recentGame.name}</h3>
@@ -834,18 +1110,29 @@ const GameDetailPage = () => {
                               {Math.round(recentGame.rating)}/100
                             </div>
                           )}
-                          {recentGame.genres && recentGame.genres.length > 0 && (
-                            <div className="game-detail-page__recent-genres">
-                              {recentGame.genres
-                                .filter((genre): genre is { id: number; name: string } => genre !== undefined && genre !== null && genre.name !== undefined)
-                                .slice(0, 2)
-                                .map(genre => (
-                                  <span key={genre.id} className="game-detail-page__recent-genre-tag">
-                                    {genre.name}
-                                  </span>
-                                ))}
-                            </div>
-                          )}
+                          {recentGame.genres &&
+                            recentGame.genres.length > 0 && (
+                              <div className="game-detail-page__recent-genres">
+                                {recentGame.genres
+                                  .filter(
+                                    (
+                                      genre
+                                    ): genre is { id: number; name: string } =>
+                                      genre !== undefined &&
+                                      genre !== null &&
+                                      genre.name !== undefined
+                                  )
+                                  .slice(0, 2)
+                                  .map((genre) => (
+                                    <span
+                                      key={genre.id}
+                                      className="game-detail-page__recent-genre-tag"
+                                    >
+                                      {genre.name}
+                                    </span>
+                                  ))}
+                              </div>
+                            )}
                         </div>
                       </div>
                     );
@@ -858,7 +1145,14 @@ const GameDetailPage = () => {
                 onClick={recentCarousel.next}
                 aria-label="Следующие игры"
               >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
                   <path d="M9 18l6-6-6-6" />
                 </svg>
               </button>
@@ -866,9 +1160,8 @@ const GameDetailPage = () => {
           )}
         </div>
       )}
-    </div >
+    </div>
   );
 };
 
 export default GameDetailPage;
-

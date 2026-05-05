@@ -1,5 +1,5 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
@@ -9,9 +9,9 @@ export default defineConfig({
         manualChunks: {
           vendor: ['axios'],
           router: ['react-router-dom'],
-        }
-      }
+        },
+      },
     },
-    chunkSizeWarningLimit: 1000
-  }
-})
+    chunkSizeWarningLimit: 1000,
+  },
+});

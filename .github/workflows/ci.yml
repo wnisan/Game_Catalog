@@ -13,19 +13,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: yarn
+          cache: 'yarn'
+
       - name: Enable Corepack
         run: corepack enable
-      - name: Activate Yarn 4
-        run: corepack prepare yarn@4.9.1 --activate
-      - name: Install
+
+      - name: Activate Yarn
+        run: corepack prepare --activate
+
+      - name: Install dependencies
         run: yarn install --immutable
+
       - name: Typecheck
-        run: yarn typecheck
+        run: yarn workspaces foreach -A run typecheck
+
       - name: Lint
-        run: yarn lint
+        run: yarn workspaces foreach -A run lint
+
       - name: Build
-        run: yarn build
+        run: yarn workspaces foreach -A run build

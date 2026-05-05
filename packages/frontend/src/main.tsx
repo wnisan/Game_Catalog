@@ -1,8 +1,11 @@
-import { StrictMode, Component, type ReactNode, type ErrorInfo } from 'react'
-import { createRoot } from 'react-dom/client'
-import App from './App.tsx'
+import { StrictMode, Component, type ReactNode, type ErrorInfo } from 'react';
+import { createRoot } from 'react-dom/client';
+import App from './App.tsx';
 
-class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+class ErrorBoundary extends Component<
+  { children: ReactNode },
+  { error: Error | null }
+> {
   state = { error: null };
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('[ErrorBoundary] caught:', error.message);
@@ -15,7 +18,9 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
         <div style={{ padding: 40, fontFamily: 'monospace', color: 'red' }}>
           <h2>Ошибка выполнения</h2>
           <pre>{(this.state.error as Error).message}</pre>
-          <button onClick={() => this.setState({ error: null })}>Повторить</button>
+          <button onClick={() => this.setState({ error: null })}>
+            Повторить
+          </button>
         </div>
       );
     }
@@ -28,5 +33,5 @@ createRoot(document.getElementById('root')!).render(
     <ErrorBoundary>
       <App />
     </ErrorBoundary>
-  </StrictMode>,
-)
+  </StrictMode>
+);

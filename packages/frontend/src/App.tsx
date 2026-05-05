@@ -1,4 +1,10 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useSearchParams,
+} from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { FiltersProvider } from './contexts/FiltersContext';
@@ -22,16 +28,8 @@ function App() {
         <FiltersProvider>
           <div className="App">
             <Routes>
-              <Route
-                path="/auth"
-                element={
-                  <AuthPageWrapper />
-                }
-              />
-              <Route
-                path="/signin-callback"
-                element={<SignInCallback />}
-              />
+              <Route path="/auth" element={<AuthPageWrapper />} />
+              <Route path="/signin-callback" element={<SignInCallback />} />
               <Route
                 path="/"
                 element={
@@ -123,25 +121,29 @@ const AuthPageWrapper: React.FC = () => {
   const { isAuthenticated } = useAuth();
 
   if (isAuthenticated) {
-    return <Navigate to='/' replace />
+    return <Navigate to="/" replace />;
   }
 
   return <AuthPage />;
 };
 
-const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const PublicLayout: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const { isLoading } = useAuth();
 
   if (isLoading) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        flexDirection: 'column',
-        gap: '16px'
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '100vh',
+          flexDirection: 'column',
+          gap: '16px',
+        }}
+      >
         <LoadingSpinner />
         <p>Загрузка...</p>
       </div>
@@ -152,21 +154,19 @@ const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     <>
       <ScrollToTop />
       <AppBar />
-      <main className="app-main">
-        {children}
-      </main>
+      <main className="app-main">{children}</main>
     </>
   );
 };
 
-const ProtectedLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const ProtectedLayout: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   return (
     <>
       <ScrollToTop />
       <AppBar />
-      <main className="app-main">
-        {children}
-      </main>
+      <main className="app-main">{children}</main>
     </>
   );
 };
@@ -204,12 +204,16 @@ const SignInCallback: React.FC = () => {
           return;
         }
 
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
         window.location.href = '/';
       } catch (err: any) {
         console.error('Google auth error:', err);
-        const errorMessage = err?.response?.data?.error || err?.response?.data?.details || err?.message || 'Failed to authenticate with Google';
+        const errorMessage =
+          err?.response?.data?.error ||
+          err?.response?.data?.details ||
+          err?.message ||
+          'Failed to authenticate with Google';
         setError(errorMessage);
         setIsProcessing(false);
         processedRef.current = false;
@@ -224,7 +228,9 @@ const SignInCallback: React.FC = () => {
       <div style={{ padding: '40px', textAlign: 'center' }}>
         <h2>Ошибка аутентификации</h2>
         <p>{error}</p>
-        <button onClick={() => window.location.href = '/auth'}>Перейти ко входу</button>
+        <button onClick={() => (window.location.href = '/auth')}>
+          Перейти ко входу
+        </button>
       </div>
     );
   }
@@ -235,7 +241,6 @@ const SignInCallback: React.FC = () => {
       <p>Завершаем аутентификацию...</p>
     </div>
   );
-
 };
 
 export default App;

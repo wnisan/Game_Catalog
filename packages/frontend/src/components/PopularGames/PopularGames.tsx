@@ -12,37 +12,57 @@ const PopularGames = () => {
   const VISIBLE_CARDS = 5;
   const CARD_WIDTH = 220;
 
-  const { index, next, prev, trackRef, withTransition } = useInfiniteCarousel(games.length, VISIBLE_CARDS);
+  const { index, next, prev, trackRef, withTransition } = useInfiniteCarousel(
+    games.length,
+    VISIBLE_CARDS
+  );
 
-  const extendedGames = useMemo(() => [
-    ...games.slice(-VISIBLE_CARDS),
-    ...games,
-    ...games.slice(0, VISIBLE_CARDS)
-  ], [games]);
+  const extendedGames = useMemo(
+    () => [
+      ...games.slice(-VISIBLE_CARDS),
+      ...games,
+      ...games.slice(0, VISIBLE_CARDS),
+    ],
+    [games]
+  );
 
-  const getCoverUrl = useMemo(() => (coverUrl?: string): string | null => {
-    if (!coverUrl) return null;
-    if (coverUrl.startsWith('http://') || coverUrl.startsWith('https://')) {
-      return coverUrl;
-    }
-    const imageId = coverUrl.split('/').pop()?.replace('.jpg', '').replace('.png', '');
-    if (imageId) {
-      return `https://images.igdb.com/igdb/image/upload/t_cover_big/${imageId}.jpg`;
-    }
-    return null;
-  }, []);
+  const getCoverUrl = useMemo(
+    () =>
+      (coverUrl?: string): string | null => {
+        if (!coverUrl) return null;
+        if (coverUrl.startsWith('http://') || coverUrl.startsWith('https://')) {
+          return coverUrl;
+        }
+        const imageId = coverUrl
+          .split('/')
+          .pop()
+          ?.replace('.jpg', '')
+          .replace('.png', '');
+        if (imageId) {
+          return `https://images.igdb.com/igdb/image/upload/t_cover_big/${imageId}.jpg`;
+        }
+        return null;
+      },
+    []
+  );
 
-  const getGenreTags = useMemo(() => (genres?: Array<{ id: number; name: string } | undefined | null>) => {
-    if (!genres) return [];
-    return genres
-      .filter((genre): genre is { id: number; name: string } => genre !== undefined && genre !== null && genre.name !== undefined)
-      .slice(0, 3)
-      .map(genre => (
-        <span key={genre.id} className="popular-games__genre-tag">
-          {genre.name}
-        </span>
-      ));
-  }, []);
+  const getGenreTags = useMemo(
+    () => (genres?: Array<{ id: number; name: string } | undefined | null>) => {
+      if (!genres) return [];
+      return genres
+        .filter(
+          (genre): genre is { id: number; name: string } =>
+            genre !== undefined && genre !== null && genre.name !== undefined
+        )
+        .slice(0, 3)
+        .map((genre) => (
+          <span key={genre.id} className="popular-games__genre-tag">
+            {genre.name}
+          </span>
+        ));
+    },
+    []
+  );
 
   useEffect(() => {
     const load = async () => {
@@ -71,7 +91,14 @@ const PopularGames = () => {
           onClick={prev}
           aria-label="Предыдущие игры"
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>
@@ -81,7 +108,7 @@ const PopularGames = () => {
             className="popular-games__track"
             style={{
               transform: `translateX(-${index * CARD_WIDTH}px)`,
-              transition: withTransition ? 'transform 0.4s ease' : 'none'
+              transition: withTransition ? 'transform 0.4s ease' : 'none',
             }}
           >
             {extendedGames.map((g, idx) => {
@@ -96,7 +123,9 @@ const PopularGames = () => {
                     {coverUrl ? (
                       <img src={coverUrl} alt={g.name} />
                     ) : (
-                      <div className="popular-games__no-cover">Нет изображения</div>
+                      <div className="popular-games__no-cover">
+                        Нет изображения
+                      </div>
                     )}
                   </div>
                   <div className="popular-games__content">
@@ -122,7 +151,14 @@ const PopularGames = () => {
           onClick={next}
           aria-label="Следующие игры"
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
             <path d="M9 18l6-6-6-6" />
           </svg>
         </button>

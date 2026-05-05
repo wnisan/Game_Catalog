@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useFilters } from '../../contexts/FiltersContext';
-import { extractGenresFromGames, extractPlatformsFromGames, extractEnginesFromGames, InitialFilters, type GenreOption, type PlatformOption, type EngineOption, type GameFilters } from '../../types/filters';
+import {
+  extractGenresFromGames,
+  extractPlatformsFromGames,
+  extractEnginesFromGames,
+  InitialFilters,
+  type GenreOption,
+  type PlatformOption,
+  type EngineOption,
+  type GameFilters,
+} from '../../types/filters';
 import type { Game, SellerOption } from '../../services/api';
 import FilterSection from '../FilterSection/FilterSection';
 import SortSelect from '../SortSelect/SortSelect';
@@ -16,18 +25,24 @@ interface FilterPanelProps {
   isOpen?: boolean;
 }
 
-const FilterPanel: React.FC<FilterPanelProps> = ({ onFiltersChange, allGames, isOpen = false }) => {
+const FilterPanel: React.FC<FilterPanelProps> = ({
+  onFiltersChange,
+  allGames,
+  isOpen = false,
+}) => {
   const {
     filters,
     updateFilter,
     updateMultipleFilter,
     resetFilters: _resetFilters,
     hasActiveFilters,
-    getActiveFiltersCount
+    getActiveFiltersCount,
   } = useFilters();
 
   const [availableGenres, setAvailableGenres] = useState<GenreOption[]>([]);
-  const [availablePlatforms, setAvailablePlatforms] = useState<PlatformOption[]>([]);
+  const [availablePlatforms, setAvailablePlatforms] = useState<
+    PlatformOption[]
+  >([]);
   const [availableEngines, setAvailableEngines] = useState<EngineOption[]>([]);
   const [availableSellers, setAvailableSellers] = useState<SellerOption[]>([]);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
@@ -39,7 +54,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ onFiltersChange, allGames, is
     engines: false,
     sellers: false,
     release: false,
-    rating: false
+    rating: false,
   });
 
   useEffect(() => {
@@ -49,7 +64,11 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ onFiltersChange, allGames, is
         const { getFilterStats } = await import('../../services/api');
         const stats = await getFilterStats();
         if (stats && stats.genres && stats.platforms && stats.engines) {
-          if (stats.genres.length > 0 || stats.platforms.length > 0 || stats.engines.length > 0) {
+          if (
+            stats.genres.length > 0 ||
+            stats.platforms.length > 0 ||
+            stats.engines.length > 0
+          ) {
             setAvailableGenres(stats.genres || []);
             setAvailablePlatforms(stats.platforms || []);
             setAvailableEngines(stats.engines || []);
@@ -94,10 +113,13 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ onFiltersChange, allGames, is
   }, []);
 
   const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+    setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
-  const handleFilterChange = <K extends keyof GameFilters>(field: K, value: GameFilters[K]) => {
+  const handleFilterChange = <K extends keyof GameFilters>(
+    field: K,
+    value: GameFilters[K]
+  ) => {
     const updatedFilters = { ...filters, [field]: value };
     updateFilter(field, value);
     onFiltersChange(updatedFilters);
@@ -131,23 +153,36 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ onFiltersChange, allGames, is
         )}
       </div>
 
-      <FilterSection title="Сортировка" isExpanded={expandedSections.sort} onToggle={() => toggleSection('sort')}>
-        <SortSelect value={filters.sortBy} onChange={v => handleFilterChange('sortBy', v)} />
+      <FilterSection
+        title="Сортировка"
+        isExpanded={expandedSections.sort}
+        onToggle={() => toggleSection('sort')}
+      >
+        <SortSelect
+          value={filters.sortBy}
+          onChange={(v) => handleFilterChange('sortBy', v)}
+        />
       </FilterSection>
 
-      <FilterSection title="Жанры" isExpanded={expandedSections.genres} onToggle={() => toggleSection('genres')}>
+      <FilterSection
+        title="Жанры"
+        isExpanded={expandedSections.genres}
+        onToggle={() => toggleSection('genres')}
+      >
         {isLoadingStats ? (
-          <div role="status" aria-live="polite">Загрузка жанров...</div>
+          <div role="status" aria-live="polite">
+            Загрузка жанров...
+          </div>
         ) : availableGenres.length > 0 ? (
           <div role="group" aria-label="Выберите жанры">
-            {availableGenres.map(g => (
+            {availableGenres.map((g) => (
               <label key={g.id}>
                 <input
                   type="checkbox"
                   checked={filters.genres.includes(g.id)}
                   onChange={() => {
                     const newGenres = filters.genres.includes(g.id)
-                      ? filters.genres.filter(id => id !== g.id)
+                      ? filters.genres.filter((id) => id !== g.id)
                       : [...filters.genres, g.id];
                     handleFilterChange('genres', newGenres);
                   }}
@@ -162,19 +197,25 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ onFiltersChange, allGames, is
         )}
       </FilterSection>
 
-      <FilterSection title="Платформы" isExpanded={expandedSections.platforms} onToggle={() => toggleSection('platforms')}>
+      <FilterSection
+        title="Платформы"
+        isExpanded={expandedSections.platforms}
+        onToggle={() => toggleSection('platforms')}
+      >
         {isLoadingStats ? (
-          <div role="status" aria-live="polite">Загрузка платформ...</div>
+          <div role="status" aria-live="polite">
+            Загрузка платформ...
+          </div>
         ) : availablePlatforms.length > 0 ? (
           <div role="group" aria-label="Выберите платформы">
-            {availablePlatforms.map(p => (
+            {availablePlatforms.map((p) => (
               <label key={p.id}>
                 <input
                   type="checkbox"
                   checked={filters.platforms.includes(p.id)}
                   onChange={() => {
                     const newPlatforms = filters.platforms.includes(p.id)
-                      ? filters.platforms.filter(id => id !== p.id)
+                      ? filters.platforms.filter((id) => id !== p.id)
                       : [...filters.platforms, p.id];
                     handleFilterChange('platforms', newPlatforms);
                   }}
@@ -189,19 +230,25 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ onFiltersChange, allGames, is
         )}
       </FilterSection>
 
-      <FilterSection title="Игровые движки" isExpanded={expandedSections.engines} onToggle={() => toggleSection('engines')}>
+      <FilterSection
+        title="Игровые движки"
+        isExpanded={expandedSections.engines}
+        onToggle={() => toggleSection('engines')}
+      >
         {isLoadingStats ? (
-          <div role="status" aria-live="polite">Загрузка движков...</div>
+          <div role="status" aria-live="polite">
+            Загрузка движков...
+          </div>
         ) : availableEngines.length > 0 ? (
           <div role="group" aria-label="Выберите игровые движки">
-            {availableEngines.map(e => (
+            {availableEngines.map((e) => (
               <label key={e.id}>
                 <input
                   type="checkbox"
                   checked={filters.engines.includes(e.id)}
                   onChange={() => {
                     const newEngines = filters.engines.includes(e.id)
-                      ? filters.engines.filter(id => id !== e.id)
+                      ? filters.engines.filter((id) => id !== e.id)
                       : [...filters.engines, e.id];
                     handleFilterChange('engines', newEngines);
                   }}
@@ -216,24 +263,51 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ onFiltersChange, allGames, is
         )}
       </FilterSection>
 
-      <FilterSection title="Продавцы" isExpanded={expandedSections.sellers} onToggle={() => toggleSection('sellers')}>
+      <FilterSection
+        title="Продавцы"
+        isExpanded={expandedSections.sellers}
+        onToggle={() => toggleSection('sellers')}
+      >
         {isLoadingSellers ? (
-          <div role="status" aria-live="polite">Загрузка продавцов...</div>
+          <div role="status" aria-live="polite">
+            Загрузка продавцов...
+          </div>
         ) : availableSellers.length > 0 ? (
-          <div role="group" aria-label="Выберите продавцов" style={{ maxHeight: '200px', overflowY: 'auto', paddingRight: '4px' }}>
-            {availableSellers.map(s => (
+          <div
+            role="group"
+            aria-label="Выберите продавцов"
+            style={{
+              maxHeight: '200px',
+              overflowY: 'auto',
+              paddingRight: '4px',
+            }}
+          >
+            {availableSellers.map((s) => (
               <label key={s.id}>
                 <input
                   type="checkbox"
                   checked={filters.sellers.includes(s.id)}
                   onChange={() => {
                     const newSellers = filters.sellers.includes(s.id)
-                      ? filters.sellers.filter(id => id !== s.id)
+                      ? filters.sellers.filter((id) => id !== s.id)
                       : [...filters.sellers, s.id];
-                    const selectedSellers = availableSellers.filter(sel => newSellers.includes(sel.id));
-                    const gameIds = [...new Set(selectedSellers.flatMap(sel => sel.game_ids))];
-                    const update = { ...filters, sellers: newSellers, sellerGameIds: gameIds };
-                    updateMultipleFilter({ sellers: newSellers, sellerGameIds: gameIds });
+                    const selectedSellers = availableSellers.filter((sel) =>
+                      newSellers.includes(sel.id)
+                    );
+                    const gameIds = [
+                      ...new Set(
+                        selectedSellers.flatMap((sel) => sel.game_ids)
+                      ),
+                    ];
+                    const update = {
+                      ...filters,
+                      sellers: newSellers,
+                      sellerGameIds: gameIds,
+                    };
+                    updateMultipleFilter({
+                      sellers: newSellers,
+                      sellerGameIds: gameIds,
+                    });
                     onFiltersChange(update);
                   }}
                   aria-label={`Фильтр по продавцу ${s.display_name}. Доступно игр: ${s.game_ids.length}`}
@@ -248,16 +322,27 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ onFiltersChange, allGames, is
         )}
       </FilterSection>
 
-      <FilterSection title="Дата релиза" isExpanded={expandedSections.release} onToggle={() => toggleSection('release')}>
+      <FilterSection
+        title="Дата релиза"
+        isExpanded={expandedSections.release}
+        onToggle={() => toggleSection('release')}
+      >
         <label htmlFor="release-date-min">
           <span className="sr-only">Минимальная дата релиза</span>
           От:
         </label>
         <DatePicker
           id="release-date-min"
-          selected={filters.releaseDateMin ? parse(filters.releaseDateMin, 'yyyy-MM-dd', new Date()) : null}
+          selected={
+            filters.releaseDateMin
+              ? parse(filters.releaseDateMin, 'yyyy-MM-dd', new Date())
+              : null
+          }
           onChange={(date: Date | null) => {
-            handleFilterChange('releaseDateMin', date ? format(date, 'yyyy-MM-dd') : '');
+            handleFilterChange(
+              'releaseDateMin',
+              date ? format(date, 'yyyy-MM-dd') : ''
+            );
           }}
           dateFormat="dd.MM.yyyy"
           locale={enGB}
@@ -271,9 +356,16 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ onFiltersChange, allGames, is
         </label>
         <DatePicker
           id="release-date-max"
-          selected={filters.releaseDateMax ? parse(filters.releaseDateMax, 'yyyy-MM-dd', new Date()) : null}
+          selected={
+            filters.releaseDateMax
+              ? parse(filters.releaseDateMax, 'yyyy-MM-dd', new Date())
+              : null
+          }
           onChange={(date: Date | null) => {
-            handleFilterChange('releaseDateMax', date ? format(date, 'yyyy-MM-dd') : '');
+            handleFilterChange(
+              'releaseDateMax',
+              date ? format(date, 'yyyy-MM-dd') : ''
+            );
           }}
           dateFormat="dd.MM.yyyy"
           locale={enGB}
@@ -283,10 +375,17 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ onFiltersChange, allGames, is
         />
       </FilterSection>
 
-      <FilterSection title="Рейтинг" isExpanded={expandedSections.rating} onToggle={() => toggleSection('rating')}>
+      <FilterSection
+        title="Рейтинг"
+        isExpanded={expandedSections.rating}
+        onToggle={() => toggleSection('rating')}
+      >
         <div style={{ marginBottom: '8px' }}>
           <label htmlFor="rating-min">
-            Мин: <span aria-live="polite" aria-atomic="true">{filters.ratingMin}</span>
+            Мин:{' '}
+            <span aria-live="polite" aria-atomic="true">
+              {filters.ratingMin}
+            </span>
           </label>
           <input
             id="rating-min"
@@ -294,9 +393,12 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ onFiltersChange, allGames, is
             min={0}
             max={100}
             value={filters.ratingMin}
-            onChange={e => {
+            onChange={(e) => {
               const newMin = Number(e.target.value);
-              handleFilterChange('ratingMin', Math.min(newMin, filters.ratingMax));
+              handleFilterChange(
+                'ratingMin',
+                Math.min(newMin, filters.ratingMax)
+              );
             }}
             aria-label={`Минимальный рейтинг: ${filters.ratingMin} из 100`}
             aria-valuemin={0}
@@ -306,7 +408,10 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ onFiltersChange, allGames, is
         </div>
         <div>
           <label htmlFor="rating-max">
-            Макс: <span aria-live="polite" aria-atomic="true">{filters.ratingMax}</span>
+            Макс:{' '}
+            <span aria-live="polite" aria-atomic="true">
+              {filters.ratingMax}
+            </span>
           </label>
           <input
             id="rating-max"
@@ -314,9 +419,12 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ onFiltersChange, allGames, is
             min={0}
             max={100}
             value={filters.ratingMax}
-            onChange={e => {
+            onChange={(e) => {
               const newMax = Number(e.target.value);
-              handleFilterChange('ratingMax', Math.max(newMax, filters.ratingMin));
+              handleFilterChange(
+                'ratingMax',
+                Math.max(newMax, filters.ratingMin)
+              );
             }}
             aria-label={`Максимальный рейтинг: ${filters.ratingMax} из 100`}
             aria-valuemin={0}
@@ -324,11 +432,14 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ onFiltersChange, allGames, is
             aria-valuenow={filters.ratingMax}
           />
         </div>
-        <div style={{ marginTop: '8px', fontWeight: 'bold' }} role="status" aria-live="polite">
+        <div
+          style={{ marginTop: '8px', fontWeight: 'bold' }}
+          role="status"
+          aria-live="polite"
+        >
           Диапазон рейтинга: {filters.ratingMin} – {filters.ratingMax}
         </div>
       </FilterSection>
-
     </div>
   );
 };
