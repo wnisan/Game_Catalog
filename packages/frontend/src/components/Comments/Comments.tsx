@@ -5,8 +5,7 @@ import {
   getGameComments,
   createGameComment,
   updateComment,
-  deleteComment,
-  type Comment,
+  deleteComment
 } from '../../services/api';
 import './Comments.css';
 
@@ -14,7 +13,19 @@ interface CommentsProps {
   gameId: number;
 }
 
-interface CommentWithReplies extends Comment {
+interface BaseComment {
+  id: number;
+  game_id: number;
+  comment_text: string;
+  created_at: string;
+  updated_at: string;
+  user_id: number;
+  user_name: string;
+  user_email: string;
+  parent_id?: number | null;
+}
+
+interface CommentWithReplies extends BaseComment {
   parent_id?: number | null;
   replies?: CommentWithReplies[];
 }

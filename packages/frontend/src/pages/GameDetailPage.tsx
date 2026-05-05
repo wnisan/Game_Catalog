@@ -734,10 +734,10 @@ const GameDetailPage = () => {
               <h2>Поддерживаемые языки</h2>
               <div className="game-detail-page__tags">
                 {Array.from(
-                  new Set(
+                  new Set<string>(
                     game.language_supports
-                      .filter((ls) => ls.language)
                       .map((ls) => ls.language)
+                      .filter((lang): lang is string => Boolean(lang))
                   )
                 ).map((lang, index) => (
                   <span key={index} className="game-detail-page__tag">
