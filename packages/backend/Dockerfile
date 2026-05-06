@@ -13,10 +13,11 @@ RUN yarn workspace @game-catalog/shared build && yarn workspace @game-catalog/ba
 
 FROM node:22-alpine
 WORKDIR /app
-COPY --from=build /app/packages/backend/dist ./dist
-COPY --from=build /app/packages/backend/package.json ./package.json
-RUN npm install --omit=dev
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/packages/shared/package.json ./packages/shared/package.json
+COPY --from=build /app/packages/shared/dist ./packages/shared/dist
+COPY --from=build /app/packages/backend/package.json ./packages/backend/package.json
+COPY --from=build /app/packages/backend/dist ./packages/backend/dist
 
 EXPOSE 3001
-
-CMD ["node", "dist/server.js"]
+CMD ["node", "packages/backend/dist/server.js"]
