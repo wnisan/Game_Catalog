@@ -58,3 +58,11 @@ docker-compose up --build
 USE GameCatalog;
 SELECT TOP 50 * FROM users;
 GO
+
+- для тестирования:
+$env:NODE_OPTIONS = "--input-type=module"; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+yarn install --immutable
+yarn workspace @game-catalog/shared build
+yarn typecheck
+yarn lint
+yarn build

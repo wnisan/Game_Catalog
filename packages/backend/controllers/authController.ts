@@ -116,7 +116,7 @@ export const deleteAccount = async (req: Request, res: Response) => {
     }
 };
 
-export const googleAuth = (req: Request, res: Response) => {
+export const googleAuth = (_req: Request, res: Response) => {
     if (!GOOGLE_CLIENT_ID) return res.status(500).json({ error: 'Google OAuth not configured' });
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(GOOGLE_REDIRECT_URI)}&response_type=code&scope=openid email profile&access_type=offline&prompt=consent`;
     res.json({ authUrl });

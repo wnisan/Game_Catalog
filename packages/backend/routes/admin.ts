@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { authenticateToken, requireAdmin } from '../middleware/auth.js';
 import {
     getAllUsers, banUser, setUserRole,
@@ -9,8 +9,7 @@ import {
 const router = express.Router();
 router.use(authenticateToken, requireAdmin);
 
-// GET /admin/listings
-router.get('/listings', async (req, res) => {
+router.get('/listings', async (_req: Request, res: Response) => {
     try {
         const p = await getPool();
         const r = await p.request().query(`
@@ -22,63 +21,82 @@ router.get('/listings', async (req, res) => {
             WHERE sl.is_active = 1
             ORDER BY sl.igdb_game_id`);
         res.json({ listings: r.recordset });
-    } catch { res.status(500).json({ error: 'Failed to get listings' }); }
+    } catch (_error: unknown) {
+        res.status(500).json({ error: 'Failed to get listings' });
+    }
 });
 
-// GET /admin/users
-router.get('/users', async (req, res) => {
+router.get('/users', async (_req: Request, res: Response) => {
     try {
         const users = await getAllUsers();
         res.json({ users });
-    } catch { res.status(500).json({ error: 'Failed to get users' }); }
+    } catch (_error: unknown) {
+        res.status(500).json({ error: 'Failed to get users' });
+    }
 });
 
-// PATCH /admin/users/:id/ban
-router.patch('/users/:id/ban', async (req, res) => {
+router.patch('/users/:id/ban', async (req: Request<{ id: string }, unknown, { banned?: boolean }>, res: Response) => {
     try {
         const { banned } = req.body;
-        await banUser(parseInt(req.params.id), !!banned);
+        await banUser(Number(req.params.id), Boolean(banned));
         res.json({ message: 'Updated' });
-    } catch { res.status(500).json({ error: 'Failed to update ban' }); }
+    } catch (_error: unknown) {
+        res.status(500).json({ error: 'Failed to update ban' });
+    }
 });
 
-// PATCH /admin/users/:id/role
-router.patch('/users/:id/role', async (req, res) => {
+router.patch('/users/:id/role', async (req: Request<{ id: string }, unknown, { role?: string }>, res: Response) => {
     try {
         const { role } = req.body;
-        if (!['buyer', 'seller', 'admin'].includes(role))
-            return res.status(400).json({ error: 'Invalid role' });
-        await setUserRole(parseInt(req.params.id), role);
+        if (role !== 'buyer' && role !== 'seller' && role !== 'admin') {
+            res.status(400).json({ error: 'Invalid role' });
+            return;
+        }
+        await setUserRole(Number(req.params.id), role);
         res.json({ message: 'Role updated' });
-    } catch { res.status(500).json({ error: 'Failed to update role' }); }
+    } catch (_error: unknown) {
+        res.status(500).json({ error: 'Failed to update role' });
+    }
 });
 
-// GET /admin/hidden-games
-router.get('/hidden-games', async (req, res) => {
+router.get('/hidden-games', async (_req: Request, res: Response) => {
     try {
         const games = await getHiddenGames();
         res.json({ games });
-    } catch { res.status(500).json({ error: 'Failed to get hidden games' }); }
+    } catch (_error: unknown) {
+        res.status(500).json({ error: 'Failed to get hidden games' });
+    }
 });
 
-// POST /admin/hidden-games
-router.post('/hidden-games', async (req, res) => {
+router.post('/hidden-games', async (req: Request<Record<string, never>, unknown, { igdbGameId?: string | number; reason?: string }>, res: Response) => {
     try {
+        if (!req.user) {
+            res.status(401).json({ error: 'Unauthorized' });
+            return;
+        }
+
         const { igdbGameId, reason } = req.body;
-        if (!igdbGameId) return res.status(400).json({ error: 'igdbGameId required' });
-        const id = parseInt(igdbGameId);
-        await hideGame(id, req.user.id, reason || '');
+        if (!igdbGameId) {
+            res.status(400).json({ error: 'igdbGameId required' });
+            return;
+        }
+
+        const id = Number(igdbGameId);
+        await hideGame(id, req.user.id, reason ?? '');
         await removeHiddenGameFromCartsAndFavorites(id);
         res.json({ message: 'Game hidden' });
-    } catch { res.status(500).json({ error: 'Failed to hide game' }); }
+    } catch (_error: unknown) {
+        res.status(500).json({ error: 'Failed to hide game' });
+    }
 });
 
-// DELETE /admin/hidden-games/:id
-router.delete('/hidden-games/:id', async (req, res) => {
+router.delete('/hidden-games/:id', async (req: Request<{ id: string }>, res: Response) => {
     try {
-        await unhideGame(parseInt(req.params.id));
+        await unhideGame(Number(req.params.id));
         res.json({ message: 'Game unhidden' });
-    } catch { res.status(500).json({ error: 'Failed to unhide game' }); }
+    } catch (_error: unknown) {
+        res.status(500).json({ error: 'Failed to unhide game' });
+    }
 });
 
 export default router;

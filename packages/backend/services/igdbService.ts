@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 import twitchAuth from './twitchAuth.js';
 import dotenv from 'dotenv';
 
@@ -9,19 +9,59 @@ interface CacheItem {
     expiresAt: number;
 }
 
+interface IGDBWebsite {
+    id?: number;
+    url?: string;
+    category?: number;
+}
+
+interface IGDBGame {
+    id?: number;
+    name?: string;
+    slug?: string;
+    rating?: number;
+    first_release_date?: number;
+    cover?: { image_id?: string; url?: string } | null;
+    websites?: Array<IGDBWebsite | number> | IGDBWebsite;
+    screenshots?: unknown[];
+    videos?: Array<{ video_id?: string }>;
+    genres?: Array<{ id?: number; name?: string }>;
+    platforms?: Array<{ id?: number; name?: string }>;
+    game_engines?: Array<{ id?: number; name?: string }>;
+    language_supports?: unknown[];
+    similar_games?: unknown[];
+    [key: string]: unknown;
+}
+
+interface ErrorWithDetails {
+    response?: { data?: unknown; status?: number };
+    message?: string;
+    stack?: string;
+    code?: string;
+}
+
+function isErrorWithDetails(error: unknown): error is ErrorWithDetails {
+    return typeof error === 'object' && error !== null;
+}
+
+function isWebsiteObject(value: IGDBWebsite | number): value is IGDBWebsite {
+    return typeof value === 'object' && value !== null;
+}
+
 interface GameFilters {
-    search?: string;
-    ratingMin?: number | string;
-    ratingMax?: number | string;
-    genres?: string;
-    platforms?: string;
-    engines?: string;
-    releaseDateMin?: string;
-    releaseDateMax?: string;
-    sortBy?: string;
-    gameIds?: number[];
-    limit?: number;
-    offset?: number;
+    search?: string | undefined;
+    ratingMin?: number | string | undefined;
+    ratingMax?: number | string | undefined;
+    genres?: string | undefined;
+    platforms?: string | undefined;
+    engines?: string | undefined;
+    releaseDateMin?: string | undefined;
+    releaseDateMax?: string | undefined;
+    sortBy?: string | undefined;
+    gameIds?: number[] | undefined;
+    limit?: number | undefined;
+    offset?: number | undefined;
+    ageRatings?: string | undefined;
 }
 
 class IGDBService {
@@ -68,7 +108,7 @@ class IGDBService {
         }
     }
 
-    getCachedGame(cacheKey) {
+    getCachedGame(cacheKey: string): unknown | null {
         const item = this.gameCache.get(cacheKey);
         if (!item) return null;
         if (item.expiresAt <= Date.now()) {
@@ -78,15 +118,15 @@ class IGDBService {
         return item.value;
     }
 
-    setCachedGame(cacheKey, value, ttlMs = 10 * 60 * 1000) {
+    setCachedGame(cacheKey: string, value: unknown, ttlMs = 10 * 60 * 1000): void {
         if (this.gameCache.size >= this.maxCacheSize) {
             const oldestKey = this.gameCache.keys().next().value;
-            this.gameCache.delete(oldestKey);
+            if (oldestKey) this.gameCache.delete(oldestKey);
         }
         this.gameCache.set(cacheKey, { value, expiresAt: Date.now() + ttlMs });
     }
 
-    async getGamesByIds(ids) {
+    async getGamesByIds(ids: Array<number | string>): Promise<IGDBGame[]> {
         try {
             console.log('getGamesByIds called with:', ids);
 
@@ -108,13 +148,15 @@ class IGDBService {
             console.log('IGDB response status:', response.status);
             console.log('IGDB response data length:', response.data?.length || 0);
 
-            const games = (response.data || []).map(g => this.normalizeGame(g));
+            const games = ((response.data || []) as IGDBGame[]).map((g: IGDBGame) => this.normalizeGame(g));
             console.log('Normalized games:', games.length);
 
             return games;
-        } catch (error) {
-            console.error('Error in getGamesByIds:', error.response?.data || error.message);
-            console.error('Error stack:', error.stack);
+        } catch (error: unknown) {
+            if (isErrorWithDetails(error)) {
+                console.error('Error in getGamesByIds:', error.response?.data || error.message);
+                console.error('Error stack:', error.stack);
+            }
             throw error;
         }
     }
@@ -130,9 +172,10 @@ class IGDBService {
         releaseDateMax,
         sortBy,
         gameIds
-    }) {
+    }: GameFilters): Promise<number> {
         const headers = await twitchAuth.getAuthHeaders();
-        const where = [];
+        void sortBy;
+        const where: string[] = [];
 
         where.push(...this.buildRatingWhere(ratingMin, ratingMax, true));
 
@@ -141,9 +184,9 @@ class IGDBService {
             where.push(`id = (${gameIds.join(',')})`);
         }
 
-        const addFilterCondition = (filterValue, fieldName) => {
+        const addFilterCondition = (filterValue: string | undefined, fieldName: string): void => {
             if (!filterValue) return;
-            const ids = filterValue.split(',').map(Number).filter(n => !isNaN(n));
+            const ids = filterValue.split(',').map(Number).filter((n: number) => !Number.isNaN(n));
             if (ids.length === 1) {
                 where.push(`${fieldName} = (${ids[0]})`);
             } else if (ids.length > 1) {
@@ -156,7 +199,7 @@ class IGDBService {
         addFilterCondition(platforms, 'platforms');
         addFilterCondition(engines, 'game_engines');
 
-        const dateConditions = [];
+        const dateConditions: string[] = [];
         if (releaseDateMin) {
             const from = Math.floor(new Date(releaseDateMin).getTime() / 1000);
             if (!Number.isNaN(from)) {
@@ -195,8 +238,8 @@ class IGDBService {
                 console.log(`getGamesCount result: ${count} games`);
             }
             return count;
-        } catch (error) {
-            console.error('Error getting games count:', error.response?.data || error.message);
+        } catch (error: unknown) {
+            if (isErrorWithDetails(error)) console.error('Error getting games count:', error.response?.data || error.message);
             console.error('Query was:', query);
             return 0;
         }
@@ -215,10 +258,10 @@ class IGDBService {
         releaseDateMax,
         sortBy,
         gameIds
-    }) {
+    }: GameFilters): Promise<IGDBGame[]> {
         const headers = await twitchAuth.getAuthHeaders();
 
-        const where = [];
+        const where: string[] = [];
         where.push(...this.buildRatingWhere(ratingMin, ratingMax, false));
 
        
@@ -226,9 +269,9 @@ class IGDBService {
             where.push(`id = (${gameIds.join(',')})`);
         }
 
-        const addFilterCondition = (filterValue, fieldName) => {
+        const addFilterCondition = (filterValue: string | undefined, fieldName: string): void => {
             if (!filterValue) return;
-            const ids = filterValue.split(',').map(Number).filter(n => !isNaN(n));
+            const ids = filterValue.split(',').map(Number).filter((n: number) => !Number.isNaN(n));
             if (ids.length === 1) {
                 where.push(`${fieldName} = (${ids[0]})`);
             } else if (ids.length > 1) {
@@ -241,7 +284,7 @@ class IGDBService {
         addFilterCondition(platforms, 'platforms');
         addFilterCondition(engines, 'game_engines');
 
-        const dateConditions = [];
+        const dateConditions: string[] = [];
         if (releaseDateMin) {
             const from = Math.floor(new Date(releaseDateMin).getTime() / 1000);
             if (!Number.isNaN(from)) {
@@ -279,17 +322,17 @@ class IGDBService {
             query += ` where ${where.join(' & ')};`;
         }
 
-        const sortClause = sortMap[sortBy] || 'first_release_date desc';
+        const sortClause = sortMap[(sortBy ?? 'release-desc') as keyof typeof sortMap] || 'first_release_date desc';
         query += ` sort ${sortClause};`;
 
-        const actualLimit = limit;
+        const actualLimit = Number(limit) || 20;
 
         query += ` limit ${actualLimit};`;
-        query += ` offset ${offset};`;
+        query += ` offset ${Number(offset) || 0};`;
 
-        const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+        const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
         const maxRetries = 3;
-        let lastError = null;
+        let lastError: unknown = null;
 
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
             try {
@@ -305,10 +348,10 @@ class IGDBService {
                 );
                 let websitesMap = new Map();
                 const websiteIds = new Set();
-                response.data.forEach(game => {
+                (response.data as IGDBGame[]).forEach((game: IGDBGame) => {
                     if (game.websites) {
                         if (Array.isArray(game.websites)) {
-                            game.websites.forEach(w => {
+                            game.websites.forEach((w: IGDBWebsite | number) => {
                                 const id = typeof w === 'number' ? w : (w && w.id && !w.url ? w.id : null);
                                 if (id) {
                                     websiteIds.add(id);
@@ -331,21 +374,21 @@ class IGDBService {
                                 websitesQuery,
                                 { headers }
                             );
-                            websitesResponse.data.forEach(w => {
+                            (websitesResponse.data as IGDBWebsite[]).forEach((w: IGDBWebsite) => {
                                 websitesMap.set(w.id, w);
                             });
                         }
                         console.log(`Fetched ${websitesMap.size} websites details for expansion`);
-                    } catch (error) {
-                        console.error('Error fetching websites details:', error.response?.data || error.message);
+                    } catch (error: unknown) {
+                        if (isErrorWithDetails(error)) console.error('Error fetching websites details:', error.response?.data || error.message);
                     }
                 }
 
-                response.data.forEach(game => {
+                (response.data as IGDBGame[]).forEach((game: IGDBGame) => {
                     if (game.websites) {
                         if (Array.isArray(game.websites)) {
-                            const expandedWebsites = [];
-                            game.websites.forEach(w => {
+                            const expandedWebsites: IGDBWebsite[] = [];
+                            game.websites.forEach((w: IGDBWebsite | number) => {
                                 const id = typeof w === 'number' ? w : (w && w.id ? w.id : null);
                                 if (id && websitesMap.has(id)) {
                                     expandedWebsites.push(websitesMap.get(id));
@@ -366,11 +409,11 @@ class IGDBService {
                     }
                 });
 
-                let games = response.data.map(game => this.normalizeGame(game));
+                let games = (response.data as IGDBGame[]).map((game: IGDBGame) => this.normalizeGame(game));
 
                 if (games.length === 0 && (ratingMin !== undefined || ratingMax !== undefined) && response.data.length > 0) {
                     console.warn(`No games after rating filter! ratingMin=${ratingMin}, ratingMax=${ratingMax}`);
-                    const sampleRatings = response.data.slice(0, 20).map(g => ({
+                    const sampleRatings = (response.data as IGDBGame[]).slice(0, 20).map((g: IGDBGame) => ({
                         id: g.id,
                         name: g.name?.substring(0, 40),
                         rating: g.rating,
@@ -381,7 +424,7 @@ class IGDBService {
 
                 if (search && search.trim()) {
                     const searchLower = search.trim().toLowerCase();
-                    games.sort((a, b) => {
+                    games.sort((a: IGDBGame, b: IGDBGame) => {
                         const aStarts = a.name && a.name.toLowerCase().startsWith(searchLower);
                         const bStarts = b.name && b.name.toLowerCase().startsWith(searchLower);
                         if (aStarts && !bStarts) return -1;
@@ -390,14 +433,15 @@ class IGDBService {
                     });
                 }
 
-                const applyClientSideFilter = (filterValue, gameField) => {
+                const applyClientSideFilter = (filterValue: string | undefined, gameField: 'genres' | 'platforms'): void => {
                     if (!filterValue) return;
-                    const ids = filterValue.split(',').map(Number).filter(n => !isNaN(n));
+                    const ids = filterValue.split(',').map(Number).filter((n: number) => !Number.isNaN(n));
                     if (ids.length === 0) return;
-                    games = games.filter(game => {
-                        if (!game[gameField] || game[gameField].length === 0) return false;
-                        const gameIds = game[gameField].map(item => item.id);
-                        return ids.every(id => gameIds.includes(id));
+                    games = games.filter((game: IGDBGame) => {
+                        const list = game[gameField] as Array<{ id?: number }> | undefined;
+                        if (!list || list.length === 0) return false;
+                        const gameIds = list.map((item: { id?: number }) => item.id).filter((id): id is number => typeof id === 'number');
+                        return ids.every((id: number) => gameIds.includes(id));
                     });
                 };
 
@@ -405,14 +449,14 @@ class IGDBService {
                 applyClientSideFilter(platforms, 'platforms');
 
                 return games;
-            } catch (error) {
+            } catch (error: unknown) {
                 lastError = error;
 
-                if ((error.response?.status === 429 || error.code === 'ECONNRESET') && attempt < maxRetries) {
+                if (isErrorWithDetails(error) && ((error.response?.status === 429 || error.code === 'ECONNRESET')) && attempt < maxRetries) {
                     continue;
                 }
 
-                console.error('IGDB API Error:', error.response?.data || error.message);
+                if (isErrorWithDetails(error)) console.error('IGDB API Error:', error.response?.data || error.message);
                 console.error('Query that failed:', query);
                 throw error;
             }
@@ -420,11 +464,11 @@ class IGDBService {
 
         throw lastError;
     }
-    async getGameByIdOrSlug(idOrSlug, isSlug = false) {
+    async getGameByIdOrSlug(idOrSlug: number | string, isSlug = false): Promise<IGDBGame> {
         const headers = await twitchAuth.getAuthHeaders();
         const cacheKey = isSlug ? `slug:${idOrSlug}` : `id:${idOrSlug}`;
         const cached = this.getCachedGame(cacheKey);
-        if (cached) return cached;
+        if (cached) return cached as IGDBGame;
 
         const whereClause = isSlug ? `slug = "${idOrSlug}"` : `id = ${idOrSlug}`;
         const query = `fields id,name,slug,summary,storyline,status,game_status,game_type,created_at,updated_at,checksum,url,external_games,first_release_date,release_dates,genres.id,genres.name,platforms.name,game_engines.name,game_modes.name,themes.name,keywords.name,tags,player_perspectives.name,hypes,alternative_names.name,artworks.image_id,videos.video_id,cover.image_id,cover.url,screenshots.image_id,websites.url,websites.category,similar_games,language_supports.language.name,language_supports.language_support_type,rating; where ${whereClause};`;
@@ -440,20 +484,20 @@ class IGDBService {
                 throw new Error('Game not found');
             }
 
-            const game = response.data[0];
+            const game = response.data[0] as IGDBGame;
 
             if (game.websites) {
                 if (Array.isArray(game.websites)) {
-                    const needsExpansion = game.websites.some(w => {
+                    const needsExpansion = game.websites.some((w: IGDBWebsite | number) => {
                         if (typeof w === 'number') return true;
-                        if (w && w.id && !w.category) return true;
+                        if (isWebsiteObject(w) && w.id && !w.category) return true;
                         return false;
                     });
 
                     if (needsExpansion) {
-                        const websiteIds = new Set();
-                        game.websites.forEach(w => {
-                            const id = typeof w === 'number' ? w : (w && w.id ? w.id : null);
+                        const websiteIds = new Set<number>();
+                        game.websites.forEach((w: IGDBWebsite | number) => {
+                            const id = typeof w === 'number' ? w : (isWebsiteObject(w) && w.id ? w.id : null);
                             if (id) websiteIds.add(id);
                         });
 
@@ -466,28 +510,29 @@ class IGDBService {
                                     { headers }
                                 );
 
-                                const websitesMap = new Map();
-                                websitesResponse.data.forEach(w => {
-                                    websitesMap.set(w.id, w);
+                                const websitesMap = new Map<number, IGDBWebsite>();
+                                (websitesResponse.data as IGDBWebsite[]).forEach((w: IGDBWebsite) => {
+                                    if (typeof w.id === 'number') websitesMap.set(w.id, w);
                                 });
 
-                                const expandedWebsites = [];
-                                game.websites.forEach(w => {
-                                    const id = typeof w === 'number' ? w : (w && w.id ? w.id : null);
+                                const expandedWebsites: IGDBWebsite[] = [];
+                                game.websites.forEach((w: IGDBWebsite | number) => {
+                                    const id = typeof w === 'number' ? w : (isWebsiteObject(w) && w.id ? w.id : null);
                                     if (id && websitesMap.has(id)) {
-                                        expandedWebsites.push(websitesMap.get(id));
-                                    } else if (w && typeof w === 'object' && w.url) {
+                                        const found = websitesMap.get(id);
+                                        if (found) expandedWebsites.push(found);
+                                    } else if (isWebsiteObject(w) && w.url) {
                                         expandedWebsites.push(w);
                                     }
                                 });
                                 game.websites = expandedWebsites;
-                            } catch (error) {
-                                console.error('Error expanding websites:', error.message);
-                                game.websites = game.websites.filter(w => w && typeof w === 'object' && w.url);
+                            } catch (error: unknown) {
+                                if (isErrorWithDetails(error)) console.error('Error expanding websites:', error.message);
+                                game.websites = game.websites.filter((w: IGDBWebsite | number) => isWebsiteObject(w) && Boolean(w.url));
                             }
                         }
                     } else {
-                        game.websites = game.websites.filter(w => w && typeof w === 'object' && w.url);
+                        game.websites = game.websites.filter((w: IGDBWebsite | number) => isWebsiteObject(w) && Boolean(w.url));
                     }
                 } else if (typeof game.websites === 'object') {
                     if (!game.websites.category && game.websites.id) {
@@ -503,8 +548,8 @@ class IGDBService {
                             } else {
                                 game.websites = [];
                             }
-                        } catch (error) {
-                            console.error('Error expanding website:', error.message);
+                        } catch (error: unknown) {
+                            if (isErrorWithDetails(error)) console.error('Error expanding website:', error.message);
                             game.websites = [];
                         }
                     } else if (game.websites.url) {
@@ -516,22 +561,31 @@ class IGDBService {
             }
 
             if (game.screenshots && Array.isArray(game.screenshots)) {
-                const screenshotIds = new Set();
-                game.screenshots.forEach(s => {
-                    const id = typeof s === 'number' ? s : (s && s.image_id ? s.image_id : (s && s.id ? s.id : null));
+                const screenshotIds = new Set<number | string>();
+                game.screenshots.forEach((s: unknown) => {
+                    const item = typeof s === 'object' && s !== null ? (s as { id?: number | string; image_id?: number | string }) : null;
+                    const id = typeof s === 'number' ? s : (item?.image_id ?? item?.id ?? null);
                     if (id) screenshotIds.add(id);
                 });
 
                 if (screenshotIds.size > 0) {
-                    game.screenshots = Array.from(screenshotIds).map((id: any) => ({
-                        image_id: typeof id === 'number' ? id : (id && id.image_id ? id.image_id : id),
-                        url: `https://images.igdb.com/igdb/image/upload/t_screenshot_big/${typeof id === 'number' ? id : (id && id.image_id ? id.image_id : id)}.jpg`
+                    game.screenshots = Array.from(screenshotIds).map((id: number | string) => ({
+                        image_id: id,
+                        url: `https://images.igdb.com/igdb/image/upload/t_screenshot_big/${id}.jpg`
                     }));
                 }
             }
 
             if (game.similar_games && Array.isArray(game.similar_games)) {
-                const similarGameIds = game.similar_games.map(id => typeof id === 'number' ? id : (id && id.id ? id.id : id)).filter(Boolean);
+                const similarGameIds = game.similar_games
+                    .map((id: unknown) => {
+                        if (typeof id === 'number') return id;
+                        if (typeof id === 'object' && id !== null && 'id' in id && typeof (id as { id?: unknown }).id === 'number') {
+                            return (id as { id: number }).id;
+                        }
+                        return null;
+                    })
+                    .filter((id): id is number => id !== null);
                 if (similarGameIds.length > 0) {
                     try {
                         const similarGamesQuery = `fields id,name,slug,cover.image_id,rating,genres.id,genres.name; where id = (${similarGameIds.slice(0, 10).join(',')});`
@@ -540,7 +594,7 @@ class IGDBService {
                             similarGamesQuery,
                             { headers }
                         );
-                        game.similar_games = similarGamesResponse.data.map(g => ({
+                        game.similar_games = (similarGamesResponse.data as IGDBGame[]).map((g: IGDBGame) => ({
                             id: g.id,
                             name: g.name,
                             slug: g.slug,
@@ -548,31 +602,31 @@ class IGDBService {
                             rating: g.rating,
                             genres: g.genres
                         }));
-                    } catch (error) {
-                        console.error('Error fetching similar games:', error.message);
+                    } catch (error: unknown) {
+                        if (isErrorWithDetails(error)) console.error('Error fetching similar games:', error.message);
                         game.similar_games = [];
                     }
                 }
             }
 
-            const normalized = this.normalizeGame(game);
+            const normalized = this.normalizeGame(game as IGDBGame);
             this.setCachedGame(cacheKey, normalized);
             return normalized;
-        } catch (error) {
-            console.error(`Error getting game by ${isSlug ? 'slug' : 'ID'}:`, error.response?.data || error.message);
+        } catch (error: unknown) {
+            if (isErrorWithDetails(error)) console.error(`Error getting game by ${isSlug ? 'slug' : 'ID'}:`, error.response?.data || error.message);
             throw error;
         }
     }
 
-    async getGameById(id) {
+    async getGameById(id: number | string): Promise<IGDBGame> {
         return this.getGameByIdOrSlug(id, false);
     }
 
-    async getGameBySlug(slug) {
+    async getGameBySlug(slug: string): Promise<IGDBGame> {
         return this.getGameByIdOrSlug(slug, true);
     }
 
-    normalizeGame(game) {
+    normalizeGame(game: IGDBGame): IGDBGame {
         const releaseDate = game.first_release_date
             ? new Date(game.first_release_date * 1000).toISOString()
             : undefined;
@@ -582,8 +636,8 @@ class IGDBService {
             const websites = Array.isArray(game.websites) ? game.websites : [game.websites];
             const links: Record<string, string> = {};
 
-            websites.forEach(w => {
-                if (w && w.url && w.category !== undefined) {
+            websites.forEach((w: IGDBWebsite | number) => {
+                if (isWebsiteObject(w) && w.url && w.category !== undefined) {
                     if (w.category === 13) {
                         links.steam = w.url;
                     } else if (w.category === 17) {
@@ -595,7 +649,7 @@ class IGDBService {
                     } else if (w.category === 27) {
                         links.xbox = w.url;
                     }
-                } else if (w && w.url) {
+                } else if (isWebsiteObject(w) && w.url) {
                     if (w.url.includes('store.steampowered.com') || w.url.includes('steampowered.com')) {
                         links.steam = w.url;
                     } else if (w.url.includes('gog.com')) {
@@ -615,11 +669,12 @@ class IGDBService {
             }
         }
 
-        let screenshots = [];
+        let screenshots: Array<{ image_id: string | number; url: string }> = [];
         if (game.screenshots) {
             if (Array.isArray(game.screenshots)) {
-                screenshots = game.screenshots.map(s => {
-                    const imageId = typeof s === 'number' ? s : (s && s.image_id ? s.image_id : (s && s.id ? s.id : null));
+                screenshots = game.screenshots.map((s: unknown) => {
+                    const item = typeof s === 'object' && s !== null ? (s as { image_id?: number | string; id?: number | string }) : null;
+                    const imageId = typeof s === 'number' ? s : (item?.image_id ?? item?.id ?? null);
                     if (imageId) {
                         return {
                             image_id: imageId,
@@ -627,21 +682,22 @@ class IGDBService {
                         };
                     }
                     return null;
-                }).filter(Boolean);
+                }).filter((v): v is { image_id: string | number; url: string } => v !== null);
             }
         }
 
-        let languageSupports = [];
+        let languageSupports: Array<{ language: string | null; language_support_type: string | undefined }> = [];
         if (game.language_supports && Array.isArray(game.language_supports)) {
-            languageSupports = game.language_supports.map(ls => {
+            languageSupports = game.language_supports.map((ls: unknown) => {
                 if (ls && typeof ls === 'object') {
+                    const l = ls as { language?: { name?: string } | string; language_support_type?: string };
                     return {
-                        language: ls.language ? (typeof ls.language === 'object' ? ls.language.name : ls.language) : null,
-                        language_support_type: ls.language_support_type
+                        language: l.language ? (typeof l.language === 'object' ? l.language.name : l.language) : null,
+                        language_support_type: l.language_support_type
                     };
                 }
                 return null;
-            }).filter(Boolean);
+            }).filter((v): v is { language: string | null; language_support_type: string | undefined } => v !== null);
         }
 
         let trailerVideoId = undefined;
@@ -669,7 +725,7 @@ class IGDBService {
         };
     }
 
-    async getPopularGames({ limit = 20 } = {}) {
+    async getPopularGames({ limit = 20 }: { limit?: number } = {}): Promise<IGDBGame[]> {
         try {
             const headers = await twitchAuth.getAuthHeaders();
             const actualLimit = Math.min(Number(limit) || 20, 50);
@@ -680,10 +736,10 @@ class IGDBService {
                 timeout: 10000
             });
 
-            return (response.data || []).map(g => this.normalizeGame(g));
-        } catch (error) {
-            console.error('Error in getPopularGames:', error.response?.data || error.message);
-            if (error.response?.status === 429) {
+            return ((response.data || []) as IGDBGame[]).map((g: IGDBGame) => this.normalizeGame(g));
+        } catch (error: unknown) {
+            if (isErrorWithDetails(error)) console.error('Error in getPopularGames:', error.response?.data || error.message);
+            if (isErrorWithDetails(error) && error.response?.status === 429) {
                 console.log('Rate limit exceeded for popular games, returning empty array');
                 return [];
             }
@@ -691,7 +747,7 @@ class IGDBService {
         }
     }
 
-    async getUpcomingGames({ limit = 12 } = {}) {
+    async getUpcomingGames({ limit = 12 }: { limit?: number } = {}): Promise<IGDBGame[]> {
         try {
             const headers = await twitchAuth.getAuthHeaders();
             const actualLimit = Math.min(Number(limit) || 12, 50);
@@ -703,10 +759,10 @@ class IGDBService {
                 timeout: 10000
             });
 
-            return (response.data || []).map(g => this.normalizeGame(g));
-        } catch (error) {
-            console.error('Error in getUpcomingGames:', error.response?.data || error.message);
-            if (error.response?.status === 429) {
+            return ((response.data || []) as IGDBGame[]).map((g: IGDBGame) => this.normalizeGame(g));
+        } catch (error: unknown) {
+            if (isErrorWithDetails(error)) console.error('Error in getUpcomingGames:', error.response?.data || error.message);
+            if (isErrorWithDetails(error) && error.response?.status === 429) {
                 console.log('Rate limit exceeded for upcoming games, returning empty array');
                 return [];
             }
@@ -714,7 +770,7 @@ class IGDBService {
         }
     }
 
-    buildRatingWhere(ratingMin, ratingMax, log = false) {
+    buildRatingWhere(ratingMin: number | string | undefined, ratingMax: number | string | undefined, log = false): string[] {
         const where = [];
         if (ratingMin !== undefined && ratingMin !== null && !isNaN(Number(ratingMin))) {
             const minRating = Number(ratingMin);
@@ -738,3 +794,4 @@ class IGDBService {
 
 const service = new IGDBService();
 export default service;
+

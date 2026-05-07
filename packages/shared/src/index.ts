@@ -152,6 +152,14 @@ export const GamesQuerySchema = z.object({
   sortBy: z.string().optional()
 });
 
+export const GameIdParamsSchema = z.object({
+  gameId: z.coerce.number()
+});
+
+export const CommentIdParamsSchema = z.object({
+  commentId: z.coerce.number()
+});
+
 export type Game = z.infer<typeof GameSchema>;
 export type User = z.infer<typeof UserSchema>;
 export type Comment = z.infer<typeof CommentSchema>;

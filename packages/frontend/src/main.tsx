@@ -1,6 +1,6 @@
 import { StrictMode, Component, type ReactNode, type ErrorInfo } from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './App.tsx';
+import App from './App';
 
 class ErrorBoundary extends Component<
   { children: ReactNode },

@@ -1,142 +1,202 @@
+import { Request, Response } from 'express';
 import IGDBService from '../services/igdbService.js';
 import { getGameFavoriteCount, recordGameVisit as recordVisit, getRecentlyVisitedGames, getGamePricesBulk, getHiddenGameIds, isGameHidden } from '../database.js';
 
-async function attachPrices(games) {
-    if (!games?.length) return games;
-    const ids = games.map(g => g.id);
+interface GameEntity {
+    id?: number;
+    name?: string;
+    [key: string]: unknown;
+}
+
+interface ErrorWithResponse {
+    response?: { status?: number };
+    message?: string;
+}
+
+function isErrorWithResponse(error: unknown): error is ErrorWithResponse {
+    return typeof error === 'object' && error !== null;
+}
+
+function queryString(value: unknown): string | undefined {
+    if (typeof value === 'string') return value;
+    if (Array.isArray(value) && typeof value[0] === 'string') return value[0];
+    return undefined;
+}
+
+async function attachPrices(games: GameEntity[]): Promise<Array<GameEntity & { price: number | null }>> {
+    if (!games.length) return [];
+    const ids = games.map((g) => Number(g.id)).filter((n) => !Number.isNaN(n));
     const priceMap = await getGamePricesBulk(ids);
-    return games.map(g => ({ ...g, price: priceMap[g.id] ?? null }));
+    return games.map((g) => ({ ...g, price: g.id !== undefined ? (priceMap[g.id] ?? null) : null }));
 }
 
-async function attachPrice(game) {
-    if (!game) return game;
+async function attachPrice(game: GameEntity | null): Promise<(GameEntity & { price: number | null }) | null> {
+    if (!game) return null;
     const [withPrice] = await attachPrices([game]);
-    return withPrice;
+    return withPrice ?? null;
 }
 
-async function filterHidden(games) {
-    if (!games?.length) return games;
+async function filterHidden(games: GameEntity[]): Promise<GameEntity[]> {
+    if (!games.length) return games;
     const hiddenIds = await getHiddenGameIds();
     if (!hiddenIds.size) return games;
-    return games.filter(g => !hiddenIds.has(g.id));
+    return games.filter((g) => typeof g.id === 'number' && !hiddenIds.has(g.id));
 }
 
-export const getGames = async (req, res) => {
+export const getGames = async (req: Request, res: Response): Promise<void> => {
     try {
-        const {
-            limit = 20, offset = 0, search,
-            ratingMin, ratingMax, genres, platforms, engines,
-            ageRatings: ageRatingsRaw, releaseDateMin, releaseDateMax,
-            sortBy, includeCount = 'false', gameIds: gameIdsRaw
-        } = req.query;
+        const limit = Number(queryString(req.query.limit) ?? '20');
+        const offset = Number(queryString(req.query.offset) ?? '0');
+        const search = queryString(req.query.search);
+        const ratingMinRaw = queryString(req.query.ratingMin);
+        const ratingMaxRaw = queryString(req.query.ratingMax);
+        const genres = queryString(req.query.genres);
+        const platforms = queryString(req.query.platforms);
+        const engines = queryString(req.query.engines);
+        const releaseDateMin = queryString(req.query.releaseDateMin);
+        const releaseDateMax = queryString(req.query.releaseDateMax);
+        const sortBy = queryString(req.query.sortBy);
+        const includeCount = queryString(req.query.includeCount) ?? 'false';
+        const gameIdsRaw = queryString(req.query.gameIds);
 
-        let ageRatings;
-        if (ageRatingsRaw) {
-            try { ageRatings = typeof ageRatingsRaw === 'string' ? JSON.parse(ageRatingsRaw) : ageRatingsRaw; }
-            catch { }
-        }
-
-        const sellerGameIds = gameIdsRaw
-            ? gameIdsRaw.split(',').map(Number).filter(n => !isNaN(n))
-            : null;
+        const sellerGameIds = gameIdsRaw ? gameIdsRaw.split(',').map(Number).filter((n) => !Number.isNaN(n)) : undefined;
 
         const filters = {
-            limit: Number(limit), offset: Number(offset), search,
-            ratingMin: ratingMin !== undefined ? Number(ratingMin) : undefined,
-            ratingMax: ratingMax !== undefined ? Number(ratingMax) : undefined,
-            genres, platforms, engines, ageRatings, releaseDateMin, releaseDateMax, sortBy,
+            limit,
+            offset,
+            search,
+            ratingMin: ratingMinRaw !== undefined ? Number(ratingMinRaw) : undefined,
+            ratingMax: ratingMaxRaw !== undefined ? Number(ratingMaxRaw) : undefined,
+            genres,
+            platforms,
+            engines,
+            releaseDateMin,
+            releaseDateMax,
+            sortBy,
             gameIds: sellerGameIds && sellerGameIds.length > 0 ? sellerGameIds : undefined,
         };
 
         let games = await IGDBService.getGamesWithFilters(filters);
         games = await filterHidden(games);
-        games = await attachPrices(games);
+        const pricedGames = await attachPrices(games);
 
         if (includeCount === 'true') {
             const totalCount = await IGDBService.getGamesCount(filters);
-            return res.json({ games, totalCount });
+            res.json({ games: pricedGames, totalCount });
+            return;
         }
-        res.json(games);
-    } catch (error) {
-        if (error.response?.status === 429) return res.status(429).json({ error: 'Too many requests to IGDB API' });
-        if (error.response?.status === 406) return res.status(406).json({ error: 'Invalid query combination' });
-        res.status(500).json({ error: 'Failed to load games', details: error.message });
+
+        res.json(pricedGames);
+    } catch (error: unknown) {
+        if (isErrorWithResponse(error) && error.response?.status === 429) {
+            res.status(429).json({ error: 'Too many requests to IGDB API' });
+            return;
+        }
+        if (isErrorWithResponse(error) && error.response?.status === 406) {
+            res.status(406).json({ error: 'Invalid query combination' });
+            return;
+        }
+        res.status(500).json({ error: 'Failed to load games', details: isErrorWithResponse(error) ? error.message : 'Unknown error' });
     }
 };
 
-export const getPopularGames = async (req, res) => {
+export const getPopularGames = async (req: Request, res: Response): Promise<void> => {
     try {
-        const limit = req.query.limit ? Number(req.query.limit) : 20;
+        const limit = Number(queryString(req.query.limit) ?? '20');
         let games = await IGDBService.getPopularGames({ limit });
         games = await filterHidden(games);
-        games = await attachPrices(games);
-        res.json(games);
-    } catch (error) {
-        if (error.response?.status === 429) return res.status(429).json({ error: 'Too many requests to IGDB API' });
+        const priced = await attachPrices(games);
+        res.json(priced);
+    } catch (error: unknown) {
+        if (isErrorWithResponse(error) && error.response?.status === 429) {
+            res.status(429).json({ error: 'Too many requests to IGDB API' });
+            return;
+        }
         res.status(500).json({ error: 'Failed to load popular games' });
     }
 };
 
-export const getUpcomingGames = async (req, res) => {
+export const getUpcomingGames = async (req: Request, res: Response): Promise<void> => {
     try {
-        const limit = req.query.limit ? Number(req.query.limit) : 12;
+        const limit = Number(queryString(req.query.limit) ?? '12');
         let games = await IGDBService.getUpcomingGames({ limit });
         games = await filterHidden(games);
-        games = await attachPrices(games);
-        res.json(games);
-    } catch (error) {
-        if (error.response?.status === 429) return res.status(429).json({ error: 'Too many requests to IGDB API' });
+        const priced = await attachPrices(games);
+        res.json(priced);
+    } catch (error: unknown) {
+        if (isErrorWithResponse(error) && error.response?.status === 429) {
+            res.status(429).json({ error: 'Too many requests to IGDB API' });
+            return;
+        }
         res.status(500).json({ error: 'Failed to load upcoming games' });
     }
 };
 
-export const getGameById = async (req, res) => {
+export const getGameById = async (req: Request<{ idOrSlug: string }>, res: Response): Promise<void> => {
     try {
         const { idOrSlug } = req.params;
-        let game = isNaN(Number(idOrSlug))
+        let game = Number.isNaN(Number(idOrSlug))
             ? await IGDBService.getGameBySlug(idOrSlug)
             : await IGDBService.getGameById(idOrSlug);
-        if (game && await isGameHidden(game.id)) {
-            return res.status(404).json({ error: 'Game not found' });
+
+        if (game && typeof game.id === 'number' && await isGameHidden(game.id)) {
+            res.status(404).json({ error: 'Game not found' });
+            return;
         }
-        game = await attachPrice(game);
-        res.json(game);
-    } catch (error) {
-        if (error.message === 'Game not found') return res.status(404).json({ error: 'Game not found' });
-        res.status(500).json({ error: 'Failed to load game', details: error.message });
+
+        const gameWithPrice = await attachPrice(game);
+        res.json(gameWithPrice);
+    } catch (error: unknown) {
+        if (isErrorWithResponse(error) && error.message === 'Game not found') {
+            res.status(404).json({ error: 'Game not found' });
+            return;
+        }
+        res.status(500).json({ error: 'Failed to load game', details: isErrorWithResponse(error) ? error.message : 'Unknown error' });
     }
 };
 
-export const getGamesByIds = async (req, res) => {
+export const getGamesByIds = async (req: Request<Record<string, never>, unknown, { ids?: unknown }>, res: Response): Promise<void> => {
     try {
-        const { ids } = req.body || {};
-        if (!Array.isArray(ids)) return res.status(400).json({ error: 'ids must be an array' });
-        let games = await IGDBService.getGamesByIds(ids);
+        const idsRaw = req.body?.ids;
+        if (!Array.isArray(idsRaw)) {
+            res.status(400).json({ error: 'ids must be an array' });
+            return;
+        }
+        let games = await IGDBService.getGamesByIds(idsRaw as Array<number | string>);
         games = await filterHidden(games);
-        games = await attachPrices(games);
-        res.json({ games });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to load games', details: error.message });
+        const priced = await attachPrices(games);
+        res.json({ games: priced });
+    } catch (error: unknown) {
+        res.status(500).json({ error: 'Failed to load games', details: isErrorWithResponse(error) ? error.message : 'Unknown error' });
     }
 };
 
-export const getFavoriteCount = async (req, res) => {
+export const getFavoriteCount = async (req: Request<{ gameId: string }>, res: Response): Promise<void> => {
     try {
         const count = await getGameFavoriteCount(Number(req.params.gameId));
         res.json({ count });
-    } catch { res.status(500).json({ error: 'Failed to get favorite count' }); }
+    } catch (_error: unknown) {
+        res.status(500).json({ error: 'Failed to get favorite count' });
+    }
 };
 
-export const recordGameVisit = async (req, res) => {
+export const recordGameVisit = async (req: Request<Record<string, never>, unknown, { gameId?: unknown }>, res: Response): Promise<void> => {
     try {
-        const { gameId } = req.body;
-        if (!gameId) return res.status(400).json({ error: 'gameId is required' });
-        const numericGameId = Number(gameId);
-        if (isNaN(numericGameId)) return res.status(400).json({ error: 'gameId must be a number' });
+        const gameIdRaw = req.body?.gameId;
+        if (gameIdRaw === undefined || gameIdRaw === null) {
+            res.status(400).json({ error: 'gameId is required' });
+            return;
+        }
+
+        const numericGameId = Number(gameIdRaw);
+        if (Number.isNaN(numericGameId)) {
+            res.status(400).json({ error: 'gameId must be a number' });
+            return;
+        }
 
         await recordVisit(req.user?.id, numericGameId);
 
-        let recentlyVisited = [];
+        let recentlyVisited: Array<GameEntity & { price: number | null }> = [];
         if (req.user?.id) {
             const recentIds = await getRecentlyVisitedGames(req.user.id, 10);
             if (recentIds.length > 0) {
@@ -145,20 +205,29 @@ export const recordGameVisit = async (req, res) => {
                 recentlyVisited = await attachPrices(games);
             }
         }
+
         res.json({ success: true, recentlyVisited });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to record visit', details: error.message });
+    } catch (error: unknown) {
+        res.status(500).json({ error: 'Failed to record visit', details: isErrorWithResponse(error) ? error.message : 'Unknown error' });
     }
 };
 
-export const getRecentlyVisited = async (req, res) => {
+export const getRecentlyVisited = async (req: Request, res: Response): Promise<void> => {
     try {
-        if (!req.user?.id) return res.json({ games: [] });
+        if (!req.user?.id) {
+            res.json({ games: [] });
+            return;
+        }
         const recentIds = await getRecentlyVisitedGames(req.user.id, 20);
-        if (!recentIds.length) return res.json({ games: [] });
+        if (!recentIds.length) {
+            res.json({ games: [] });
+            return;
+        }
         let games = await IGDBService.getGamesByIds(recentIds);
         games = await filterHidden(games);
-        games = await attachPrices(games);
-        res.json({ games });
-    } catch { res.status(500).json({ games: [] }); }
+        const priced = await attachPrices(games);
+        res.json({ games: priced });
+    } catch (_error: unknown) {
+        res.status(500).json({ games: [] });
+    }
 };

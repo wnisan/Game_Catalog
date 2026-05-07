@@ -5,14 +5,9 @@ import React, {
   useCallback,
   type ReactNode,
 } from 'react';
+import type { User as SharedUser } from '@game-catalog/shared';
 
-interface User {
-  id: number;
-  email: string;
-  name: string;
-  role?: string;
-  created_at?: string;
-}
+type User = SharedUser & { created_at?: string };
 
 interface AuthContextType {
   user: User | null;

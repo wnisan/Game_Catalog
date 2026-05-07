@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request } from 'express';
 import { authenticateToken } from '../middleware/auth.js';
 import {
     getOrCreateConversation, getConversationById,
@@ -9,76 +9,88 @@ import {
 
 const router = express.Router();
 
-// POST /chat/conversations — начать или получить чат
-router.post('/conversations', authenticateToken, async (req, res) => {
+function paramAsNumber(req: Request<{ id: string }>): number {
+    return Number(req.params.id);
+}
+
+router.post('/conversations', authenticateToken, async (req: Request<Record<string, never>, unknown, { sellerUserId?: unknown; igdbGameId?: unknown; gameName?: unknown }>, res) => {
     try {
-        const { sellerUserId, igdbGameId, gameName } = req.body;
-        if (!sellerUserId || !igdbGameId) return res.status(400).json({ error: 'sellerUserId and igdbGameId required' });
+        if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+        const sellerUserId = Number(req.body.sellerUserId);
+        const igdbGameId = Number(req.body.igdbGameId);
+        const gameName = typeof req.body.gameName === 'string' ? req.body.gameName : '';
+
+        if (Number.isNaN(sellerUserId) || Number.isNaN(igdbGameId)) return res.status(400).json({ error: 'sellerUserId and igdbGameId required' });
         if (req.user.id === sellerUserId) return res.status(400).json({ error: 'Cannot chat with yourself' });
 
-        const convId = await getOrCreateConversation(req.user.id, sellerUserId, igdbGameId, gameName || '');
+        const convId = await getOrCreateConversation(req.user.id, sellerUserId, igdbGameId, gameName);
         const conv = await getConversationById(convId);
-        res.json({ conversation: conv });
-    } catch (err) {
+        return res.json({ conversation: conv });
+    } catch (err: unknown) {
         console.error(err);
-        res.status(500).json({ error: 'Failed to create conversation' });
+        return res.status(500).json({ error: 'Failed to create conversation' });
     }
 });
 
-// GET /chat/conversations — все чаты пользователя
 router.get('/conversations', authenticateToken, async (req, res) => {
     try {
+        if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
         const convs = await getUserConversations(req.user.id);
-        res.json({ conversations: convs });
+        return res.json({ conversations: convs });
     } catch {
-        res.status(500).json({ error: 'Failed to get conversations' });
+        return res.status(500).json({ error: 'Failed to get conversations' });
     }
 });
 
-// GET /chat/conversations/:id/messages — история сообщений
-router.get('/conversations/:id/messages', authenticateToken, async (req, res) => {
+router.get('/conversations/:id/messages', authenticateToken, async (req: Request<{ id: string }>, res) => {
     try {
-        const conv = await getConversationById(parseInt(req.params.id));
+        if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+        const convId = paramAsNumber(req);
+        const conv = await getConversationById(convId);
         if (!conv) return res.status(404).json({ error: 'Conversation not found' });
-        if (conv.buyer_id !== req.user.id && conv.seller_id !== req.user.id) {
-            return res.status(403).json({ error: 'Forbidden' });
-        }
-        const messages = await getConversationMessages(parseInt(req.params.id));
-        await markMessagesRead(parseInt(req.params.id), req.user.id);
-        res.json({ messages });
+        if (conv.buyer_id !== req.user.id && conv.seller_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+
+        const messages = await getConversationMessages(convId);
+        await markMessagesRead(convId, req.user.id);
+        return res.json({ messages });
     } catch {
-        res.status(500).json({ error: 'Failed to get messages' });
+        return res.status(500).json({ error: 'Failed to get messages' });
     }
 });
 
-// GET /chat/unread — количество непрочитанных
 router.get('/unread', authenticateToken, async (req, res) => {
     try {
+        if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
         const count = await getTotalUnread(req.user.id);
-        res.json({ count });
+        return res.json({ count });
     } catch {
-        res.status(500).json({ error: 'Failed to get unread count' });
+        return res.status(500).json({ error: 'Failed to get unread count' });
     }
 });
 
-// PATCH /chat/messages/:id — редактировать сообщение
-router.patch('/messages/:id', authenticateToken, async (req, res) => {
+router.patch('/messages/:id', authenticateToken, async (req: Request<{ id: string }, unknown, { content?: unknown }>, res) => {
     try {
-        const { content } = req.body;
-        if (!content?.trim()) return res.status(400).json({ error: 'content required' });
-        const ok = await editMessage(parseInt(req.params.id), req.user.id, content.trim());
+        if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+        const content = typeof req.body.content === 'string' ? req.body.content.trim() : '';
+        if (!content) return res.status(400).json({ error: 'content required' });
+
+        const ok = await editMessage(paramAsNumber(req), req.user.id, content);
         if (!ok) return res.status(403).json({ error: 'Not your message' });
-        res.json({ message: 'Updated' });
-    } catch { res.status(500).json({ error: 'Failed to edit message' }); }
+        return res.json({ message: 'Updated' });
+    } catch {
+        return res.status(500).json({ error: 'Failed to edit message' });
+    }
 });
 
-// DELETE /chat/messages/:id — удалить сообщение (soft)
-router.delete('/messages/:id', authenticateToken, async (req, res) => {
+router.delete('/messages/:id', authenticateToken, async (req: Request<{ id: string }>, res) => {
     try {
-        const ok = await deleteMessage(parseInt(req.params.id), req.user.id);
+        if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+        const ok = await deleteMessage(paramAsNumber(req), req.user.id);
         if (!ok) return res.status(403).json({ error: 'Not your message' });
-        res.json({ message: 'Deleted' });
-    } catch { res.status(500).json({ error: 'Failed to delete message' }); }
+        return res.json({ message: 'Deleted' });
+    } catch {
+        return res.status(500).json({ error: 'Failed to delete message' });
+    }
 });
 
 export default router;

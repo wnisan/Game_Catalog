@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import {
     getSellerProfileHandler, getSellerListings,
     getCartHandler, addToCartHandler, removeFromCartHandler, checkCartHandler,
@@ -14,7 +14,7 @@ router.post('/cart/add', authenticateToken, addToCartHandler);
 router.delete('/cart/:listingId', authenticateToken, removeFromCartHandler);
 router.get('/cart/check/:listingId', authenticateToken, checkCartHandler);
 
-router.get('/all', async (_, res) => {
+router.get('/all', async (_req, res) => {
     try {
         const p = await getPool();
         const r = await p.request().query(`
@@ -24,8 +24,8 @@ router.get('/all', async (_, res) => {
             LEFT JOIN seller_listings sl ON sl.seller_id = sp.id AND sl.is_active = 1
             ORDER BY sp.display_name
         `);
-        const sellersMap = new Map();
-        r.recordset.forEach(row => {
+        const sellersMap = new Map<number, { id: number; display_name: string; is_verified: boolean; rating: number; total_sales: number; game_ids: number[] }>();
+        r.recordset.forEach((row: { id: number; display_name: string; is_verified: boolean; rating: number; total_sales: number; igdb_game_id: number | null }) => {
             if (!sellersMap.has(row.id)) {
                 sellersMap.set(row.id, {
                     id: row.id,
@@ -36,37 +36,37 @@ router.get('/all', async (_, res) => {
                     game_ids: []
                 });
             }
-            if (row.igdb_game_id) {
-                sellersMap.get(row.id).game_ids.push(row.igdb_game_id);
-            }
+            if (row.igdb_game_id) sellersMap.get(row.id)?.game_ids.push(row.igdb_game_id);
         });
-        const sellers = Array.from(sellersMap.values()).filter(s => s.game_ids.length > 0);
-        res.json({ sellers });
+        const sellers = Array.from(sellersMap.values()).filter((s) => s.game_ids.length > 0);
+        return res.json({ sellers });
     } catch (e) {
         console.error('Error fetching all sellers:', e);
-        res.status(500).json({ error: 'Failed to fetch sellers' });
+        return res.status(500).json({ error: 'Failed to fetch sellers' });
     }
 });
 
 router.patch('/listings/:id/price', authenticateToken, async (req, res) => {
     try {
-        const listingId = parseInt(req.params.id);
-        const { price } = req.body;
-        if (!price || isNaN(parseFloat(price)) || parseFloat(price) <= 0)
-            return res.status(400).json({ error: 'Valid price required' });
+        if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+        const listingId = Number(req.params.id);
+        const priceRaw = (req.body as { price?: unknown }).price;
+        const price = Number(priceRaw);
+        if (Number.isNaN(price) || price <= 0) return res.status(400).json({ error: 'Valid price required' });
 
         const listing = await getListingById(listingId);
         if (!listing) return res.status(404).json({ error: 'Listing not found' });
 
         if (req.user.role !== 'admin') {
             const seller = await getSellerByUserId(req.user.id);
-            if (!seller || seller.id !== listing.seller_id)
-                return res.status(403).json({ error: 'Forbidden' });
+            if (!seller || seller.id !== listing.seller_id) return res.status(403).json({ error: 'Forbidden' });
         }
 
-        await updateListingPrice(listingId, parseFloat(price));
-        res.json({ message: 'Price updated' });
-    } catch { res.status(500).json({ error: 'Failed to update price' }); }
+        await updateListingPrice(listingId, price);
+        return res.json({ message: 'Price updated' });
+    } catch {
+        return res.status(500).json({ error: 'Failed to update price' });
+    }
 });
 
 router.get('/:sellerId', getSellerProfileHandler);
@@ -74,7 +74,8 @@ router.get('/:sellerId/listings', getSellerListings);
 
 router.patch('/description', authenticateToken, async (req, res) => {
     try {
-        const { description } = req.body;
+        if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+        const description = typeof (req.body as { description?: unknown }).description === 'string' ? (req.body as { description?: string }).description : '';
         const seller = await getSellerByUserId(req.user.id);
         if (!seller) return res.status(404).json({ error: 'Seller profile not found' });
         const p = await getPool();
@@ -82,8 +83,10 @@ router.patch('/description', authenticateToken, async (req, res) => {
             .input('desc', sql.NVarChar, description || '')
             .input('id', sql.Int, seller.id)
             .query(`UPDATE seller_profiles SET description = @desc WHERE id = @id`);
-        res.json({ message: 'Description updated' });
-    } catch { res.status(500).json({ error: 'Failed to update description' }); }
+        return res.json({ message: 'Description updated' });
+    } catch {
+        return res.status(500).json({ error: 'Failed to update description' });
+    }
 });
 
 export default router;

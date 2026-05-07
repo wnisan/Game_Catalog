@@ -11,7 +11,11 @@ const poolConfig = {
     options: { encrypt: false, trustServerCertificate: true, enableArithAbort: true },
 };
 
-let pool;
+type DbPool = Awaited<ReturnType<typeof sql.connect>>;
+let pool: DbPool | undefined;
+function isSqlDuplicateKeyError(error: unknown): error is { number: number } {
+    return typeof error === 'object' && error !== null && 'number' in error && typeof (error as { number: unknown }).number === 'number';
+}
 export async function getPool() {
     if (!pool) pool = await sql.connect(poolConfig);
     return pool;
@@ -199,7 +203,7 @@ export async function initDatabase() {
 }
 
 // USER HELPERS
-export async function createUser(email, name, password) {
+export async function createUser(email: string, name: string, password: string | null) {
     const p = await getPool();
     let password_hash = null;
     if (password?.trim()) password_hash = await bcrypt.hash(password, 10);
@@ -214,25 +218,25 @@ export async function createUser(email, name, password) {
     return userId;
 }
 
-export async function getUserByEmail(email) {
+export async function getUserByEmail(email: string) {
     const p = await getPool();
     const r = await p.request().input('email', sql.NVarChar, email)
         .query(`SELECT * FROM users WHERE email = @email`);
     return r.recordset[0] || null;
 }
 
-export async function getUserById(id) {
+export async function getUserById(id: number) {
     const p = await getPool();
     const r = await p.request().input('id', sql.Int, id)
         .query(`SELECT * FROM users WHERE id = @id`);
     return r.recordset[0] || null;
 }
 
-export function verifyPassword(password, hash) {
+export function verifyPassword(password: string, hash: string) {
     return bcrypt.compareSync(password, hash);
 }
 
-export async function updateUser(userId, updates) {
+export async function updateUser(userId: number, updates: { name?: string; email?: string; password?: string | null }) {
     const p = await getPool();
     const { name, email, password } = updates;
     const parts = [];
@@ -249,7 +253,7 @@ export async function updateUser(userId, updates) {
     return r.rowsAffected[0] > 0;
 }
 
-export async function deleteUser(userId) {
+export async function deleteUser(userId: number) {
     const p = await getPool();
     const r = await p.request().input('id', sql.Int, userId)
         .query(`DELETE FROM users WHERE id = @id`);
@@ -257,7 +261,7 @@ export async function deleteUser(userId) {
 }
 
 // REFRESH TOKENS
-export async function createRefreshToken(userId, token, expiresAt) {
+export async function createRefreshToken(userId: number, token: string, expiresAt: string | Date) {
     const p = await getPool();
     await p.request()
         .input('uid', sql.Int, userId)
@@ -266,20 +270,20 @@ export async function createRefreshToken(userId, token, expiresAt) {
         .query(`INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES (@uid, @token, @exp)`);
 }
 
-export async function getRefreshToken(token) {
+export async function getRefreshToken(token: string) {
     const p = await getPool();
     const r = await p.request().input('token', sql.NVarChar, token)
         .query(`SELECT * FROM refresh_tokens WHERE token = @token`);
     return r.recordset[0] || null;
 }
 
-export async function deleteRefreshToken(token) {
+export async function deleteRefreshToken(token: string) {
     const p = await getPool();
     await p.request().input('token', sql.NVarChar, token)
         .query(`DELETE FROM refresh_tokens WHERE token = @token`);
 }
 
-export async function deleteUserRefreshTokens(userId) {
+export async function deleteUserRefreshTokens(userId: number) {
     const p = await getPool();
     await p.request().input('uid', sql.Int, userId)
         .query(`DELETE FROM refresh_tokens WHERE user_id = @uid`);
@@ -291,7 +295,7 @@ export async function cleanupExpiredTokens() {
     return r.rowsAffected[0];
 }
 
-export async function updateRefreshTokenExpiry(token, expiresAt) {
+export async function updateRefreshTokenExpiry(token: string, expiresAt: string | Date) {
     const p = await getPool();
     const r = await p.request()
         .input('exp', sql.DateTime, new Date(expiresAt))
@@ -301,40 +305,40 @@ export async function updateRefreshTokenExpiry(token, expiresAt) {
 }
 
 // FAVORITES
-export async function addFavorite(userId, gameId) {
+export async function addFavorite(userId: number, gameId: number) {
     const p = await getPool();
     try {
         await p.request().input('uid', sql.Int, userId).input('gid', sql.Int, gameId)
             .query(`INSERT INTO favorites (user_id, game_id) VALUES (@uid, @gid)`);
         return true;
-    } catch (e) {
-        if (e.number === 2627 || e.number === 2601) return false;
+    } catch (e: unknown) {
+        if (isSqlDuplicateKeyError(e) && (e.number === 2627 || e.number === 2601)) return false;
         throw e;
     }
 }
 
-export async function removeFavorite(userId, gameId) {
+export async function removeFavorite(userId: number, gameId: number) {
     const p = await getPool();
     const r = await p.request().input('uid', sql.Int, userId).input('gid', sql.Int, gameId)
         .query(`DELETE FROM favorites WHERE user_id = @uid AND game_id = @gid`);
     return r.rowsAffected[0] > 0;
 }
 
-export async function getFavorites(userId) {
+export async function getFavorites(userId: number) {
     const p = await getPool();
     const r = await p.request().input('uid', sql.Int, userId)
         .query(`SELECT game_id FROM favorites WHERE user_id = @uid ORDER BY created_at DESC`);
-    return r.recordset.map(row => row.game_id);
+    return r.recordset.map((row: { game_id: number }) => row.game_id);
 }
 
-export async function isFavorite(userId, gameId) {
+export async function isFavorite(userId: number, gameId: number) {
     const p = await getPool();
     const r = await p.request().input('uid', sql.Int, userId).input('gid', sql.Int, gameId)
         .query(`SELECT 1 AS found FROM favorites WHERE user_id = @uid AND game_id = @gid`);
     return r.recordset.length > 0;
 }
 
-export async function getGameFavoriteCount(gameId) {
+export async function getGameFavoriteCount(gameId: number) {
     const p = await getPool();
     const r = await p.request().input('gid', sql.Int, gameId)
         .query(`SELECT COUNT(*) AS cnt FROM favorites WHERE game_id = @gid`);
@@ -342,7 +346,7 @@ export async function getGameFavoriteCount(gameId) {
 }
 
 // COMMENTS
-export async function createComment(userId, gameId, commentText, parentId = null) {
+export async function createComment(userId: number, gameId: number, commentText: string, parentId: number | null = null) {
     const p = await getPool();
     const req = p.request()
         .input('uid', sql.Int, userId)
@@ -353,7 +357,7 @@ export async function createComment(userId, gameId, commentText, parentId = null
     return r.recordset[0].id;
 }
 
-async function fetchCommentWithUser(p, id) {
+async function fetchCommentWithUser(p: DbPool, id: number) {
     const r = await p.request().input('id', sql.Int, id).query(`
         SELECT gc.id, gc.game_id, gc.comment_text, gc.created_at, gc.updated_at,
                u.id AS user_id, u.name AS user_name, u.email AS user_email
@@ -362,7 +366,7 @@ async function fetchCommentWithUser(p, id) {
     return r.recordset[0] || null;
 }
 
-export async function getCommentsByGameId(gameId) {
+export async function getCommentsByGameId(gameId: number) {
     const p = await getPool();
     const r = await p.request().input('gid', sql.Int, gameId).query(`
         SELECT gc.id, gc.game_id, gc.comment_text, gc.created_at, gc.updated_at, gc.parent_id,
@@ -372,7 +376,7 @@ export async function getCommentsByGameId(gameId) {
     return r.recordset;
 }
 
-export async function getCommentsByUserId(userId) {
+export async function getCommentsByUserId(userId: number) {
     const p = await getPool();
     const r = await p.request().input('uid', sql.Int, userId).query(`
         SELECT gc.id, gc.game_id, gc.comment_text, gc.created_at, gc.updated_at,
@@ -382,12 +386,12 @@ export async function getCommentsByUserId(userId) {
     return r.recordset;
 }
 
-export async function getCommentById(id) {
+export async function getCommentById(id: number) {
     const p = await getPool();
     return fetchCommentWithUser(p, id);
 }
 
-export async function updateComment(commentId, userId, commentText) {
+export async function updateComment(commentId: number, userId: number, commentText: string) {
     const p = await getPool();
     const check = await p.request().input('cid', sql.Int, commentId).input('uid', sql.Int, userId)
         .query(`SELECT game_id FROM game_comments WHERE id = @cid AND user_id = @uid`);
@@ -398,7 +402,7 @@ export async function updateComment(commentId, userId, commentText) {
     return check.recordset[0].game_id;
 }
 
-export async function deleteComment(commentId, userId) {
+export async function deleteComment(commentId: number, userId: number) {
     const p = await getPool();
     const replies = await p.request().input('pid', sql.Int, commentId)
         .query(`SELECT COUNT(*) AS cnt FROM game_comments WHERE parent_id = @pid`);
@@ -413,7 +417,7 @@ export async function deleteComment(commentId, userId) {
 }
 
 // GAME VISITS
-export async function recordGameVisit(userId, gameId) {
+export async function recordGameVisit(userId: number | null | undefined, gameId: number) {
     const p = await getPool();
     if (userId) {
         await p.request().input('uid', sql.Int, userId).input('gid', sql.Int, gameId)
@@ -426,28 +430,28 @@ export async function recordGameVisit(userId, gameId) {
     }
 }
 
-export async function getRecentlyVisitedGames(userId, limit = 10) {
+export async function getRecentlyVisitedGames(userId: number | null | undefined, limit = 10) {
     if (!userId) return [];
     const p = await getPool();
     const r = await p.request().input('uid', sql.Int, userId).input('lim', sql.Int, limit).query(`
         SELECT TOP (@lim) game_id, MAX(visited_at) AS last_visited
         FROM game_visits WHERE user_id = @uid
         GROUP BY game_id ORDER BY last_visited DESC`);
-    return r.recordset.map(row => row.game_id);
+    return r.recordset.map((row: { game_id: number }) => row.game_id);
 }
 
 // GAME PRICES
-export async function getGamePricesBulk(igdbGameIds) {
+export async function getGamePricesBulk(igdbGameIds: number[]) {
     if (!igdbGameIds.length) return {};
     const p = await getPool();
     const idList = igdbGameIds.join(',');
     const r = await p.request().query(`SELECT igdb_game_id, price FROM game_prices WHERE igdb_game_id IN (${idList})`);
-    const map = {};
-    r.recordset.forEach(row => { map[row.igdb_game_id] = parseFloat(row.price); });
+    const map: Record<number, number> = {};
+    r.recordset.forEach((row: { igdb_game_id: number; price: string | number }) => { map[row.igdb_game_id] = parseFloat(String(row.price)); });
     return map;
 }
 
-export async function updateGamePrice(igdbGameId, price) {
+export async function updateGamePrice(igdbGameId: number, price: number) {
     const p = await getPool();
     const r = await p.request()
         .input('gid', sql.Int, igdbGameId)
@@ -456,7 +460,7 @@ export async function updateGamePrice(igdbGameId, price) {
     return r.rowsAffected[0] > 0;
 }
 
-export async function updateListingPrice(listingId, price) {
+export async function updateListingPrice(listingId: number, price: number) {
     const p = await getPool();
     const r = await p.request()
         .input('id', sql.Int, listingId)
@@ -466,7 +470,7 @@ export async function updateListingPrice(listingId, price) {
 }
 
 // SELLERS
-export async function createSellerProfile(userId, displayName, description) {
+export async function createSellerProfile(userId: number, displayName: string, description: string) {
     const p = await getPool();
     const r = await p.request()
         .input('uid', sql.Int, userId)
@@ -477,7 +481,7 @@ export async function createSellerProfile(userId, displayName, description) {
     return r.recordset[0].id;
 }
 
-export async function getSellerByUserId(userId) {
+export async function getSellerByUserId(userId: number) {
     const p = await getPool();
     const r = await p.request().input('uid', sql.Int, userId).query(`
         SELECT sp.*, u.name AS user_name, u.email AS user_email
@@ -486,7 +490,7 @@ export async function getSellerByUserId(userId) {
     return r.recordset[0] || null;
 }
 
-export async function getSellerById(sellerId) {
+export async function getSellerById(sellerId: number) {
     const p = await getPool();
     const r = await p.request().input('id', sql.Int, sellerId).query(`
         SELECT sp.*, u.name AS user_name, u.email AS user_email
@@ -495,7 +499,7 @@ export async function getSellerById(sellerId) {
     return r.recordset[0] || null;
 }
 
-export async function createListing(sellerId, igdbGameId, price, description) {
+export async function createListing(sellerId: number, igdbGameId: number, price: number, description: string) {
     const p = await getPool();
     const r = await p.request()
         .input('sid', sql.Int, sellerId)
@@ -507,7 +511,7 @@ export async function createListing(sellerId, igdbGameId, price, description) {
     return r.recordset[0].id;
 }
 
-export async function getListingByGameId(igdbGameId) {
+export async function getListingByGameId(igdbGameId: number) {
     const p = await getPool();
     const r = await p.request().input('gid', sql.Int, igdbGameId).query(`
         SELECT sl.*, sp.display_name AS seller_name, sp.id AS seller_profile_id,
@@ -520,7 +524,7 @@ export async function getListingByGameId(igdbGameId) {
     return r.recordset[0] || null;
 }
 
-export async function getListingById(listingId) {
+export async function getListingById(listingId: number) {
     const p = await getPool();
     const r = await p.request().input('id', sql.Int, listingId).query(`
         SELECT sl.*, sp.display_name AS seller_name, sp.id AS seller_profile_id,
@@ -533,7 +537,7 @@ export async function getListingById(listingId) {
     return r.recordset[0] || null;
 }
 
-export async function getListingsBySellerId(sellerId) {
+export async function getListingsBySellerId(sellerId: number) {
     const p = await getPool();
     const r = await p.request().input('sid', sql.Int, sellerId).query(`
         SELECT TOP 10000 * FROM seller_listings WHERE seller_id = @sid
@@ -542,7 +546,7 @@ export async function getListingsBySellerId(sellerId) {
 }
 
 // CART
-export async function addToCart(userId, listingId) {
+export async function addToCart(userId: number, listingId: number) {
     const p = await getPool();
     try {
         await p.request()
@@ -550,13 +554,13 @@ export async function addToCart(userId, listingId) {
             .input('lid', sql.Int, listingId)
             .query(`INSERT INTO cart_items (user_id, listing_id) VALUES (@uid, @lid)`);
         return true;
-    } catch (e) {
-        if (e.number === 2627 || e.number === 2601) return false;
+    } catch (e: unknown) {
+        if (isSqlDuplicateKeyError(e) && (e.number === 2627 || e.number === 2601)) return false;
         throw e;
     }
 }
 
-export async function removeFromCart(userId, listingId) {
+export async function removeFromCart(userId: number, listingId: number) {
     const p = await getPool();
     const r = await p.request()
         .input('uid', sql.Int, userId)
@@ -565,7 +569,7 @@ export async function removeFromCart(userId, listingId) {
     return r.rowsAffected[0] > 0;
 }
 
-export async function getCart(userId) {
+export async function getCart(userId: number) {
     const p = await getPool();
     const r = await p.request().input('uid', sql.Int, userId).query(`
         SELECT ci.id, ci.listing_id, ci.added_at,
@@ -581,7 +585,7 @@ export async function getCart(userId) {
     return r.recordset;
 }
 
-export async function isInCart(userId, listingId) {
+export async function isInCart(userId: number, listingId: number) {
     const p = await getPool();
     const r = await p.request()
         .input('uid', sql.Int, userId)
@@ -594,10 +598,10 @@ export async function isInCart(userId, listingId) {
 export async function getAllUsers() {
     const p = await getPool();
     const r = await p.request().query(`SELECT id, email, name, role, is_banned, created_at FROM users ORDER BY created_at DESC`);
-    return r.recordset.map(u => ({ ...u, is_banned: u.is_banned === true || u.is_banned === 1 }));
+    return r.recordset.map((u: { is_banned: boolean | number } & Record<string, unknown>) => ({ ...u, is_banned: u.is_banned === true || u.is_banned === 1 }));
 }
 
-export async function banUser(userId, isBanned) {
+export async function banUser(userId: number, isBanned: boolean) {
     const p = await getPool();
     const r = await p.request()
         .input('id', sql.Int, userId)
@@ -606,7 +610,7 @@ export async function banUser(userId, isBanned) {
     return r.rowsAffected[0] > 0;
 }
 
-export async function setUserRole(userId, role) {
+export async function setUserRole(userId: number, role: string) {
     const p = await getPool();
     const r = await p.request()
         .input('id', sql.Int, userId)
@@ -615,7 +619,7 @@ export async function setUserRole(userId, role) {
     return r.rowsAffected[0] > 0;
 }
 
-export async function hideGame(igdbGameId, adminId, reason) {
+export async function hideGame(igdbGameId: number, adminId: number, reason: string) {
     const p = await getPool();
     try {
         await p.request()
@@ -624,13 +628,13 @@ export async function hideGame(igdbGameId, adminId, reason) {
             .input('reason', sql.NVarChar, reason || '')
             .query(`INSERT INTO hidden_games (igdb_game_id, hidden_by, reason) VALUES (@gid, @aid, @reason)`);
         return true;
-    } catch (e) {
-        if (e.number === 2627 || e.number === 2601) return false;
+    } catch (e: unknown) {
+        if (isSqlDuplicateKeyError(e) && (e.number === 2627 || e.number === 2601)) return false;
         throw e;
     }
 }
 
-export async function unhideGame(igdbGameId) {
+export async function unhideGame(igdbGameId: number) {
     const p = await getPool();
     const r = await p.request().input('gid', sql.Int, igdbGameId)
         .query(`DELETE FROM hidden_games WHERE igdb_game_id = @gid`);
@@ -646,7 +650,7 @@ export async function getHiddenGames() {
     return r.recordset;
 }
 
-export async function isGameHidden(igdbGameId) {
+export async function isGameHidden(igdbGameId: number) {
     const p = await getPool();
     const r = await p.request().input('gid', sql.Int, igdbGameId)
         .query(`SELECT 1 AS found FROM hidden_games WHERE igdb_game_id = @gid`);
@@ -656,10 +660,10 @@ export async function isGameHidden(igdbGameId) {
 export async function getHiddenGameIds() {
     const p = await getPool();
     const r = await p.request().query(`SELECT igdb_game_id FROM hidden_games`);
-    return new Set(r.recordset.map(row => row.igdb_game_id));
+    return new Set(r.recordset.map((row: { igdb_game_id: number }) => row.igdb_game_id));
 }
 
-export async function removeHiddenGameFromCartsAndFavorites(igdbGameId) {
+export async function removeHiddenGameFromCartsAndFavorites(igdbGameId: number) {
     const p = await getPool();
 
     await p.request().input('gid', sql.Int, igdbGameId).query(`
@@ -675,14 +679,14 @@ export async function removeHiddenGameFromCartsAndFavorites(igdbGameId) {
 }
 
 // USER BALANCE
-export async function getUserBalance(userId) {
+export async function getUserBalance(userId: number) {
     const p = await getPool();
     const r = await p.request().input('uid', sql.Int, userId)
         .query(`SELECT balance FROM user_balances WHERE user_id = @uid`);
     return r.recordset[0] ? parseFloat(r.recordset[0].balance) : 0;
 }
 
-export async function addToBalance(userId, amount) {
+export async function addToBalance(userId: number, amount: number) {
     const p = await getPool();
     await p.request()
         .input('uid', sql.Int, userId)
@@ -692,7 +696,7 @@ export async function addToBalance(userId, amount) {
 }
 
 // PUBLIC PROFILE
-export async function getPublicProfile(userId) {
+export async function getPublicProfile(userId: number) {
     const p = await getPool();
     const ur = await p.request().input('uid', sql.Int, userId).query(`
         SELECT id, name, email, role, avatar_url, created_at
@@ -712,7 +716,7 @@ export async function getPublicProfile(userId) {
 }
 
 // USER ORDERS
-export async function getUserOrders(userId) {
+export async function getUserOrders(userId: number) {
     const p = await getPool();
     const r = await p.request().input('uid', sql.Int, userId).query(`
         SELECT o.id, o.igdb_game_id, o.amount, o.status, o.created_at,
@@ -729,7 +733,7 @@ export async function getUserOrders(userId) {
     return r.recordset;
 }
 
-export async function getSellerOrders(sellerUserId) {
+export async function getSellerOrders(sellerUserId: number) {
     const p = await getPool();
     const r = await p.request().input('uid', sql.Int, sellerUserId).query(`
         SELECT o.id, o.igdb_game_id, o.amount, o.status, o.created_at,
@@ -743,7 +747,7 @@ export async function getSellerOrders(sellerUserId) {
     return r.recordset;
 }
 
-export async function createOrder(buyerId, sellerId, listingId, igdbGameId, amount) {
+export async function createOrder(buyerId: number, sellerId: number, listingId: number, igdbGameId: number, amount: number) {
     const p = await getPool();
     const r = await p.request()
         .input('buyerId', sql.Int, buyerId)
@@ -758,7 +762,7 @@ export async function createOrder(buyerId, sellerId, listingId, igdbGameId, amou
     return r.recordset[0].id;
 }
 
-export async function sellerSendKey(orderId, sellerUserId, gameKey) {
+export async function sellerSendKey(orderId: number, sellerUserId: number, gameKey: string) {
     const p = await getPool();
     const r = await p.request()
         .input('id', sql.Int, orderId)
@@ -771,7 +775,7 @@ export async function sellerSendKey(orderId, sellerUserId, gameKey) {
     return r.rowsAffected[0] > 0;
 }
 
-export async function buyerConfirmOrder(orderId, buyerId) {
+export async function buyerConfirmOrder(orderId: number, buyerId: number) {
     const p = await getPool();
 
     const or = await p.request().input('id', sql.Int, orderId).input('uid', sql.Int, buyerId)
@@ -793,11 +797,8 @@ export async function buyerConfirmOrder(orderId, buyerId) {
     return true;
 }
 
-export async function cancelOrder(orderId, userId) {
+export async function cancelOrder(orderId: number, userId: number) {
     const p = await getPool();
-    const or = await p.request().input('id', sql.Int, orderId)
-        .query(`SELECT * FROM orders WHERE id = @id AND (buyer_id = @id OR seller_id = @id) AND status = 'pending_key'`);
-
     const or2 = await p.request().input('id', sql.Int, orderId).input('uid', sql.Int, userId)
         .query(`SELECT * FROM orders WHERE id = @id AND (buyer_id = @uid OR seller_id = @uid) AND status = 'pending_key'`);
     if (!or2.recordset.length) return false;
@@ -891,7 +892,7 @@ export async function migrateConversationsTable() {
     } catch { }
 }
 
-export async function getOrCreateConversation(buyerId, sellerUserId, igdbGameId, gameName) {
+export async function getOrCreateConversation(buyerId: number, sellerUserId: number, igdbGameId: number, gameName: string) {
     const p = await getPool();
 
     const existing = await p.request()
@@ -911,7 +912,7 @@ export async function getOrCreateConversation(buyerId, sellerUserId, igdbGameId,
     return r.recordset[0].id;
 }
 
-export async function getConversationById(convId) {
+export async function getConversationById(convId: number) {
     const p = await getPool();
     const r = await p.request().input('id', sql.Int, convId).query(`
         SELECT c.*, 
@@ -923,7 +924,7 @@ export async function getConversationById(convId) {
     return r.recordset[0] || null;
 }
 
-export async function getUserConversations(userId) {
+export async function getUserConversations(userId: number) {
     const p = await getPool();
     const r = await p.request().input('uid', sql.Int, userId).query(`
         SELECT c.id, c.igdb_game_id, c.game_name, c.created_at,
@@ -940,7 +941,7 @@ export async function getUserConversations(userId) {
     return r.recordset;
 }
 
-export async function getConversationMessages(convId) {
+export async function getConversationMessages(convId: number) {
     const p = await getPool();
     const r = await p.request().input('cid', sql.Int, convId).query(`
         SELECT m.id, m.sender_id, m.content, m.is_read, m.created_at,
@@ -954,7 +955,7 @@ export async function getConversationMessages(convId) {
     return r.recordset;
 }
 
-export async function saveMessage(convId, senderId, content) {
+export async function saveMessage(convId: number, senderId: number, content: string) {
     const p = await getPool();
     const r = await p.request()
         .input('cid', sql.Int, convId)
@@ -966,7 +967,7 @@ export async function saveMessage(convId, senderId, content) {
     return r.recordset[0];
 }
 
-export async function editMessage(messageId, senderId, content) {
+export async function editMessage(messageId: number, senderId: number, content: string) {
     const p = await getPool();
     const r = await p.request()
         .input('id', sql.Int, messageId)
@@ -976,7 +977,7 @@ export async function editMessage(messageId, senderId, content) {
     return r.rowsAffected[0] > 0;
 }
 
-export async function deleteMessage(messageId, senderId) {
+export async function deleteMessage(messageId: number, senderId: number) {
     const p = await getPool();
     const r = await p.request()
         .input('id', sql.Int, messageId)
@@ -985,7 +986,7 @@ export async function deleteMessage(messageId, senderId) {
     return r.rowsAffected[0] > 0;
 }
 
-export async function markMessagesRead(convId, userId) {
+export async function markMessagesRead(convId: number, userId: number) {
     const p = await getPool();
     await p.request()
         .input('cid', sql.Int, convId)
@@ -993,7 +994,7 @@ export async function markMessagesRead(convId, userId) {
         .query(`UPDATE messages SET is_read = 1 WHERE conversation_id = @cid AND sender_id != @uid AND is_read = 0`);
 }
 
-export async function getTotalUnread(userId) {
+export async function getTotalUnread(userId: number) {
     const p = await getPool();
     const r = await p.request().input('uid', sql.Int, userId).query(`
         SELECT COUNT(*) AS cnt
@@ -1005,7 +1006,7 @@ export async function getTotalUnread(userId) {
 }
 
 // REVIEWS
-export async function createReview(orderId, buyerId, listingId, sellerUserId, rating, review) {
+export async function createReview(orderId: number, buyerId: number, listingId: number, sellerUserId: number, rating: number, review: string) {
     const p = await getPool();
     try {
         await p.request()
@@ -1028,13 +1029,13 @@ export async function createReview(orderId, buyerId, listingId, sellerUserId, ra
             )
             WHERE user_id = @uid`);
         return true;
-    } catch (e) {
-        if (e.number === 2627 || e.number === 2601) return false; // уже есть отзыв
+    } catch (e: unknown) {
+        if (isSqlDuplicateKeyError(e) && (e.number === 2627 || e.number === 2601)) return false;
         throw e;
     }
 }
 
-export async function getSellerReviews(sellerUserId, limit = 50) {
+export async function getSellerReviews(sellerUserId: number, limit = 50) {
     const p = await getPool();
     const r = await p.request()
         .input('uid', sql.Int, sellerUserId)
@@ -1057,7 +1058,7 @@ export async function getSellerReviews(sellerUserId, limit = 50) {
     return r.recordset;
 }
 
-export async function hasReview(orderId, buyerId) {
+export async function hasReview(orderId: number, buyerId: number) {
     const p = await getPool();
     const r = await p.request()
         .input('oid', sql.Int, orderId)
@@ -1065,3 +1066,5 @@ export async function hasReview(orderId, buyerId) {
         .query(`SELECT 1 AS found FROM product_ratings WHERE order_id = @oid AND buyer_id = @uid`);
     return r.recordset.length > 0;
 }
+
+

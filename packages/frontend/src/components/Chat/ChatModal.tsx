@@ -19,7 +19,7 @@ interface ChatModalProps {
   igdbGameId: number;
   gameName: string;
   onClose: () => void;
-  onUnreadChange?: (count: number) => void;
+  onUnreadChange?: ((count: number) => void) | undefined;
   existingConvId?: number;
 }
 
