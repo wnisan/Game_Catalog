@@ -1,0 +1,45 @@
+name: ci
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  NODE_OPTIONS: ""
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+    branches:
+      - "**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Activate Yarn
+        run: corepack prepare yarn@4.9.1 --activate
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Build shared package
+        run: yarn workspace @game-catalog/shared build
+
+      - name: Typecheck
+        run: yarn typecheck
+
+      - name: Lint
+        run: yarn lint
+
+      - name: Build
+        run: yarn build

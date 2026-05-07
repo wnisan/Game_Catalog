@@ -1,0 +1,227 @@
+.app-bar {
+    background: #161b22;
+    border-bottom: 1px solid #21262d;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+
+.app-bar__container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 24px;
+    height: 60px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 20px;
+}
+
+
+.app-bar__left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.app-bar__brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    margin-right: 8px;
+}
+.app-bar__brand-icon { width: 28px; height: 28px; object-fit: contain; }
+.app-bar__brand-name {
+    font-size: 1rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #58a6ff, #7c3aed);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    white-space: nowrap;
+}
+
+.app-bar__nav {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+
+.app-bar__nav-link {
+    color: #8b949e;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 8px;
+    transition: color 0.15s, background 0.15s;
+    white-space: nowrap;
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    line-height: 1;
+}
+.app-bar__nav-link:hover { color: #e6edf3; background: rgba(255,255,255,0.06); }
+.app-bar__nav-link--active { color: #e6edf3; background: rgba(88,166,255,0.1); }
+
+
+.app-bar__filter-btn { font-size: 14px; }
+.app-bar__filter-btn--open {
+    color: #58a6ff !important;
+    background: rgba(88,166,255,0.15) !important;
+    box-shadow: 0 0 0 1px rgba(88,166,255,0.4);
+}
+
+.app-bar__filter-badge {
+    background: #7c3aed;
+    color: #fff;
+    border-radius: 10px;
+    padding: 1px 6px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+
+.app-bar__search-form {
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+}
+
+.app-bar__search-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.app-bar__search-icon {
+    position: absolute;
+    left: 12px;
+    color: #6e7681;
+    pointer-events: none;
+    flex-shrink: 0;
+}
+
+.app-bar__search-input {
+    width: 100%;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 24px;
+    color: #e6edf3;
+    font-size: 14px;
+    padding: 8px 36px 8px 36px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.app-bar__search-input::placeholder { color: #6e7681; }
+.app-bar__search-input:focus {
+    border-color: #58a6ff;
+    box-shadow: 0 0 0 3px rgba(88,166,255,0.15);
+}
+
+.app-bar__search-clear {
+    position: absolute;
+    right: 10px;
+    background: none;
+    border: none;
+    color: #6e7681;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: color 0.15s;
+}
+.app-bar__search-clear:hover { color: #e6edf3; }
+
+
+.app-bar__right {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.app-bar__nav-btn {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.app-bar__chat-wrap {
+    display: flex;
+    align-items: center;
+}
+
+.app-bar__user-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.app-bar__avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.app-bar__admin-link { color: #f85149 !important; }
+.app-bar__admin-link:hover { background: rgba(248,81,73,0.1) !important; color: #f85149 !important; }
+.app-bar__admin-link.app-bar__nav-link--active { background: rgba(248,81,73,0.15) !important; }
+
+.app-bar__logout-link { color: #6e7681 !important; }
+.app-bar__logout-link:hover { color: #f85149 !important; background: rgba(248,81,73,0.08) !important; }
+
+.app-bar__login-btn {
+    background: linear-gradient(135deg, #58a6ff, #7c3aed);
+    color: #fff;
+    text-decoration: none;
+    padding: 7px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: opacity 0.2s;
+    white-space: nowrap;
+}
+.app-bar__login-btn:hover { opacity: 0.85; }
+
+
+.app-bar__chat-wrap .chat-inbox-btn {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #8b949e;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.app-bar__chat-wrap .chat-inbox-btn:hover { color: #e6edf3; background: rgba(255,255,255,0.06); }
+.app-bar__chat-wrap .chat-inbox-wrap::after { display: none; }
+
+@media (max-width: 900px) {
+    .app-bar__container { grid-template-columns: auto 1fr auto; gap: 12px; padding: 0 12px; }
+    .app-bar__brand-name { display: none; }
+    .app-bar__search-form { max-width: 100%; }
+}
+
+@media (max-width: 640px) {
+    .app-bar__nav { display: none; }
+}

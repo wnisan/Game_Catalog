@@ -1,0 +1,128 @@
+import React, {
+  createContext,
+  useState,
+  useContext,
+  useCallback,
+  type ReactNode,
+} from 'react';
+import type { User as SharedUser } from '@game-catalog/shared';
+
+type User = SharedUser & { created_at?: string };
+
+interface AuthContextType {
+  user: User | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
+  logout: () => void;
+  refreshUser: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const isAuthenticated = !!user;
+
+  const login = async (email: string, password: string): Promise<void> => {
+    const { login: loginApi } = await import('../services/api');
+    const { user } = await loginApi(email, password);
+    setUser(user);
+    setToken(null);
+  };
+
+  const register = async (
+    name: string,
+    email: string,
+    password: string
+  ): Promise<void> => {
+    const { register: registerApi } = await import('../services/api');
+    const { user } = await registerApi(email, name, password);
+    setUser(user);
+    setToken(null);
+  };
+
+  const refreshUser = useCallback(async (): Promise<void> => {
+    try {
+      const { getMe } = await import('../services/api');
+      const result = await getMe();
+      setUser(result?.user ?? null);
+    } catch {}
+  }, []);
+
+  const logout = useCallback(async (): Promise<void> => {
+    try {
+      const { logout: logoutApi } = await import('../services/api');
+      await logoutApi();
+    } catch {
+    } finally {
+      setUser(null);
+      setToken(null);
+      localStorage.removeItem('gameFilters');
+      window.dispatchEvent(new CustomEvent('filtersReset'));
+    }
+  }, []);
+
+  React.useEffect(() => {
+    const loadUser = async () => {
+      try {
+        setIsLoading(true);
+        const { getMe } = await import('../services/api');
+        const result = await getMe();
+        setUser(result?.user ?? null);
+        setToken(null);
+      } catch {
+        setUser(null);
+        setToken(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadUser();
+  }, []);
+
+  React.useEffect(() => {
+    const handler = () => refreshUser();
+    window.addEventListener('auth:refresh', handler);
+    return () => window.removeEventListener('auth:refresh', handler);
+  }, [refreshUser]);
+
+  React.useEffect(() => {
+    const handler = () => {
+      setUser(null);
+      setToken(null);
+      alert('Ваш аккаунт заблокирован. Вы вышли из системы.');
+    };
+    window.addEventListener('auth:banned', handler);
+    return () => window.removeEventListener('auth:banned', handler);
+  }, []);
+
+  const value: AuthContextType = {
+    user,
+    token,
+    isAuthenticated,
+    isLoading,
+    login,
+    register,
+    logout,
+    refreshUser,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
